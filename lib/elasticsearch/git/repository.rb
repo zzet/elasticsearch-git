@@ -1,5 +1,6 @@
 require 'active_support/concern'
 require 'active_model'
+require 'elasticsearch'
 require 'elasticsearch/model'
 require 'rugged'
 require 'gitlab_git'
@@ -15,20 +16,88 @@ module Elasticsearch
         #index_name [Rails.application.class.parent_name.downcase, self.name.downcase, 'commits', Rails.env.to_s].join('-')
 
         mapping do
-          indexes :blobs, type: :nested
-          indexes :commits, type: :nested
+          indexes :blobs do
+            indexes :id,          type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,  index_analyzer: :human_analyzer
+            indexes :oid,         type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
+            indexes :commit_sha,  type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
+            indexes :content,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,   index_analyzer: :human_analyzer
+          end
+          indexes :commits do
+            indexes :id,          type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,  index_analyzer: :human_analyzer
+            indexes :sha,         type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
+            indexes :author do
+              indexes :name,      type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :human_analyzer
+              indexes :email,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :human_analyzer
+              indexes :time,      type: :date
+            end
+            indexes :commiter do
+              indexes :name,      type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :human_analyzer
+              indexes :email,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :human_analyzer
+              indexes :time,      type: :date
+            end
+            indexes :message,    type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,     index_analyzer: :human_analyzer
+          end
+        end
+
+        def create_indexes
+          client_for_indexing.indices.create \
+            index: self.class.index_name,
+            body: {
+              settings: self.class.settings.to_hash,
+              mappings: self.class.mappings.to_hash
+            }
+        end
+
+        def index_blobs
+          target_sha = repository_for_indexing.head.target
+          repository_for_indexing.index.each do |blob|
+            b = LiteBlob.new(repository_for_indexing, blob)
+            if b.text?
+              client_for_indexing.index \
+                index: "#{self.class.index_name}",
+                type: "blob",
+                id: "#{target_sha}_#{b.path}",
+                body: {
+                  blob: {
+                    oid: b.id,
+                    content: b.data,
+                    commit_sha: target_sha
+                  }
+                }
+            end
+          end
+        end
+
+        def index_commits
+          repository_for_indexing.each_id do |oid|
+            obj = repository_for_indexing.lookup(oid)
+            if obj.type == :commit
+              client_for_indexing.index \
+                index: "#{self.class.index_name}",
+                type: "commit",
+                id: obj.oid,
+                body: {
+                  commit: {
+                    sha: obj.oid,
+                    author: obj.author,
+                    committer: obj.committer,
+                    message: obj.message
+                  }
+                }
+            end
+          end
         end
 
         def as_indexed_json(options = {})
           ij = {}
-          ij[:blobs] = index_blobs
-          ij[:commits] = index_commits
+          ij[:blobs] = index_blobs_array
+          ij[:commits] = index_commits_array
           #ij[:blobs] = index_tree(repository_for_indexing.lookup(repository_for_indexing.head.target).tree)
           #ij[:commits] = index_commits_by_ref(repository_for_indexing.head)
           ij
         end
 
-        def index_blobs
+        def index_blobs_array
           result = []
 
           target_sha = repository_for_indexing.head.target
@@ -47,7 +116,7 @@ module Elasticsearch
           result
         end
 
-        def index_commits
+        def index_commits_array
           res = []
 
           repository_for_indexing.each_id do |oid|
@@ -67,62 +136,19 @@ module Elasticsearch
           res
         end
 
-        # Deprecated
-        def index_tree(tree, path = "/")
-          result = []
-          tree.each_blob do |blob|
-            b = EasyBlob.new(repository_for_indexing, blob)
-            result.push(
-              {
-                id: "#{repository_for_indexing.head.target}_#{path}_#{blob[:name]}",
-                oid: b.id,
-                content: b.data,
-                commit_sha: repository_for_indexing.head.target
-              }
-            ) if b.text?
-          end
-
-          tree.each_tree do |nested_tree|
-            result.push(index_tree(repository_for_indexing.lookup(nested_tree[:oid]), "/#{nested_tree[:name]}"))
-          end
-
-          result.flatten
-        end
-
-        # Deprecated
-        def index_commits_by_ref(ref)
-          index_commit_info(repository_for_indexing.lookup(ref.target)).flatten
-        end
-
-        # Deprecated
-        def index_commit_info(commit)
-          res = []
-          res.push(
-            {
-              sha: commit.oid,
-              author: commit.author,
-              committer: commit.committer,
-              message: commit.message
-            }
-          )
-
-          # TODO: create batch indexing
-          commit.parents.each do |parent_commit|
-            res.push(index_commit_info(parent_commit))
-          end
-
-          res
-        end
-
         def repository_for_indexing(repo_path = "")
           @path_to_repo ||= repo_path
           Rugged::Repository.new(@path_to_repo)
         end
 
+        def client_for_indexing
+          @client_for_indexing ||= Elasticsearch::Client.new log: true
+        end
+
       end
     end
 
-    class EasyBlob
+    class LiteBlob
       include Linguist::BlobHelper
       include EncodingHelper
 

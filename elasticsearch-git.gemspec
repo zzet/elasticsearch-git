@@ -19,6 +19,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_runtime_dependency 'elasticsearch-model'
+  spec.add_runtime_dependency 'elasticsearch-api'
   spec.add_runtime_dependency 'rugged'
   spec.add_runtime_dependency 'gitlab_git'
   spec.add_runtime_dependency 'activemodel'

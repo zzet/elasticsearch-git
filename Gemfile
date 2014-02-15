@@ -4,6 +4,7 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'elasticsearch-model', github: 'elasticsearch/elasticsearch-rails'
+gem 'elasticsearch-api', git: 'git://github.com/elasticsearch/elasticsearch-ruby.git'
 gem 'rugged', git: 'git://github.com/libgit2/rugged.git', branch: 'development', submodules: true
 gem 'bundler'
 gem 'rake'
