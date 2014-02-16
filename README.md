@@ -1,24 +1,52 @@
 # Elasticsearch::Git
 
-TODO: Write a gem description
+Attention: Pre-pre-pre beta code. Not production.
+
+[Elasticsearch](https://github.com/elasticsearch/elasticsearch-rails/tree/master/elasticsearch-model) integrations for git repositories
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
-    gem 'elasticsearch-git'
+``` ruby
+gem 'elasticsearch-git'
+```
 
 And then execute:
 
-    $ bundle
+``` bash
+$ bundle
+```
 
 Or install it yourself as:
 
-    $ gem install elasticsearch-git
+``` bash
+$ gem install elasticsearch-git
+```
 
 ## Usage
 
-TODO: Write usage instructions here
+``` ruby
+class Repository
+  include Elasticsearch::Git::Repository
+
+  set_repository_id       project.id
+  repository_for_indexing '/path/to/your/repo'
+
+end
+
+Repository.__elasticsearch__.create_index! force: true
+
+repo = Repository.new
+repo.index_commits
+repo.index_blobs
+
+Repository.search("query", type: 'blob')
+Repository.search("query", type: 'commit')
+
+# Search in all types
+Repository.search("query")
+```
 
 ## Contributing
 
