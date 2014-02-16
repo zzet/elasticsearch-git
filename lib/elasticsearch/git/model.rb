@@ -12,6 +12,8 @@ module Elasticsearch
         include ActiveModel::Model
         include Elasticsearch::Model
 
+        index_name [self.name.downcase, 'index', Rails.env.to_s].join('-')
+
         settings \
           index: {
           analysis: {

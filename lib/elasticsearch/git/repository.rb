@@ -13,8 +13,6 @@ module Elasticsearch
       included do
         include Elasticsearch::Git::Model
 
-        #index_name [Rails.application.class.parent_name.downcase, self.name.downcase, 'commits', Rails.env.to_s].join('-')
-
         mapping do
           indexes :blobs do
             indexes :id,          type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,  index_analyzer: :human_analyzer
@@ -39,15 +37,20 @@ module Elasticsearch
           end
         end
 
-        def create_indexes
-          client_for_indexing.indices.create \
-            index: self.class.index_name,
-            body: {
-              settings: self.class.settings.to_hash,
-              mappings: self.class.mappings.to_hash
-            }
-        end
-
+        # Indexing all text-like blobs in repository
+        #
+        # All data stored in global index
+        # Repository can be selected by 'rid' field
+        # If you want - this field can be used for store 'project' id
+        #
+        # blob {
+        #   id - uniq id of blob from all repositories
+        #   oid - blob id in repository
+        #   content - blob content
+        #   commit_sha - last actual commit sha
+        # }
+        #
+        # For search from blobs use type 'blob'
         def index_blobs
           target_sha = repository_for_indexing.head.target
           repository_for_indexing.index.each do |blob|
@@ -56,10 +59,11 @@ module Elasticsearch
               client_for_indexing.index \
                 index: "#{self.class.index_name}",
                 type: "blob",
-                id: "#{target_sha}_#{b.path}",
+                id: "#{repository_id}_#{b.path}",
                 body: {
                   blob: {
                     oid: b.id,
+                    rid: repository_id,
                     content: b.data,
                     commit_sha: target_sha
                   }
@@ -68,6 +72,28 @@ module Elasticsearch
           end
         end
 
+        # Indexing all commits in repository
+        #
+        # All data stored in global index
+        # Repository can be filtered by 'rid' field
+        # If you want - this field can be used git store 'project' id
+        #
+        # commit {
+        #  sha - commit sha
+        #  author {
+        #    name - commit author name
+        #    email - commit author email
+        #    time - commit time
+        #  }
+        #  commiter {
+        #    name - committer name
+        #    email - committer email
+        #    time - commit time
+        #  }
+        #  message - commit message
+        # }
+        #
+        # For search from commits use type 'commit'
         def index_commits
           repository_for_indexing.each_id do |oid|
             obj = repository_for_indexing.lookup(oid)
@@ -75,9 +101,10 @@ module Elasticsearch
               client_for_indexing.index \
                 index: "#{self.class.index_name}",
                 type: "commit",
-                id: obj.oid,
+                id: "#{repository_id}_#{obj.oid}",
                 body: {
                   commit: {
+                    rid: repository_id,
                     sha: obj.oid,
                     author: obj.author,
                     committer: obj.committer,
@@ -88,15 +115,16 @@ module Elasticsearch
           end
         end
 
+        # Representation of repository as indexed json
+        # Attention: It can be very very very huge hash
         def as_indexed_json(options = {})
           ij = {}
           ij[:blobs] = index_blobs_array
           ij[:commits] = index_commits_array
-          #ij[:blobs] = index_tree(repository_for_indexing.lookup(repository_for_indexing.head.target).tree)
-          #ij[:commits] = index_commits_by_ref(repository_for_indexing.head)
           ij
         end
 
+        # Indexing blob from current index
         def index_blobs_array
           result = []
 
@@ -116,6 +144,7 @@ module Elasticsearch
           result
         end
 
+        # Lookup all object ids for commit objects
         def index_commits_array
           res = []
 
@@ -134,6 +163,12 @@ module Elasticsearch
           end
 
           res
+        end
+
+        # Repository id used for identity data from different repositories
+        # Update this value if need
+        def set_repository_id id
+          @repository_id = id || path_to_repo
         end
 
         def repository_for_indexing(repo_path = "")
