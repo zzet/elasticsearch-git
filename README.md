@@ -30,9 +30,11 @@ $ gem install elasticsearch-git
 class Repository
   include Elasticsearch::Git::Repository
 
-  set_repository_id       project.id
-  repository_for_indexing '/path/to/your/repo'
+  def repository_id
+    project.id
+  end
 
+  repository_for_indexing '/path/to/your/repo'
 end
 
 Repository.__elasticsearch__.create_index! force: true

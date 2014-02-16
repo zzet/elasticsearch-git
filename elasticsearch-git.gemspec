@@ -21,7 +21,8 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'elasticsearch-model'
   spec.add_runtime_dependency 'elasticsearch-api'
   spec.add_runtime_dependency 'rugged'
-  spec.add_runtime_dependency 'gitlab_git'
+  spec.add_runtime_dependency 'charlock_holmes'
+  spec.add_runtime_dependency 'gitlab-linguist'
   spec.add_runtime_dependency 'activemodel'
   spec.add_runtime_dependency 'activesupport'
 end

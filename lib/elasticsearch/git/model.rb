@@ -12,7 +12,13 @@ module Elasticsearch
         include ActiveModel::Model
         include Elasticsearch::Model
 
-        index_name [self.name.downcase, 'index', Rails.env.to_s].join('-')
+        env = if defined?(::Rails)
+                ::Rails.env.to_s
+              else
+                "undefined"
+              end
+
+        index_name [self.name.downcase, 'index', env].join('-')
 
         settings \
           index: {

@@ -3,7 +3,7 @@ require 'active_model'
 require 'elasticsearch'
 require 'elasticsearch/model'
 require 'rugged'
-require 'gitlab_git'
+require 'linguist'
 
 module Elasticsearch
   module Git
@@ -14,14 +14,16 @@ module Elasticsearch
         include Elasticsearch::Git::Model
 
         mapping do
-          indexes :blobs do
+          indexes :blob do
             indexes :id,          type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,  index_analyzer: :human_analyzer
+            indexes :rid,         type: :string, index: :not_analyzed
             indexes :oid,         type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
             indexes :commit_sha,  type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
             indexes :content,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,   index_analyzer: :human_analyzer
           end
-          indexes :commits do
+          indexes :commit do
             indexes :id,          type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,  index_analyzer: :human_analyzer
+            indexes :rid,         type: :string, index: :not_analyzed
             indexes :sha,         type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
             indexes :author do
               indexes :name,      type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :human_analyzer
@@ -53,22 +55,44 @@ module Elasticsearch
         # For search from blobs use type 'blob'
         def index_blobs
           target_sha = repository_for_indexing.head.target
-          repository_for_indexing.index.each do |blob|
-            b = LiteBlob.new(repository_for_indexing, blob)
-            if b.text?
-              client_for_indexing.index \
-                index: "#{self.class.index_name}",
-                type: "blob",
-                id: "#{repository_id}_#{b.path}",
-                body: {
-                  blob: {
-                    oid: b.id,
-                    rid: repository_id,
-                    content: b.data,
-                    commit_sha: target_sha
-                  }
-                }
+
+          if repository_for_indexing.bare?
+            recurse_blobs_index(repository_for_indexing.lookup(target_sha).tree, target_sha)
+          else
+            repository_for_indexing.index.each do |blob|
+              b = LiteBlob.new(repository_for_indexing, blob)
+              index_blob(b, target_sha)
             end
+          end
+        end
+
+        def recurse_blobs_index(tree, target_sha, path = "")
+          tree.each_blob do |blob|
+            blob[:path] = path + blob[:name]
+            b = LiteBlob.new(repository_for_indexing, blob)
+            index_blob(b, target_sha)
+          end
+
+          tree.each_tree do |nested_tree|
+            recurse_blobs_index(repository_for_indexing.lookup(nested_tree[:oid]), target_sha, "#{path}#{nested_tree[:name]}/")
+          end
+        end
+
+        def index_blob(blob, target_sha)
+          if blob.text?
+            client_for_indexing.index \
+              index: "#{self.class.index_name}",
+              type: "repository",
+              id: "#{repository_id}_#{blob.path}",
+              body: {
+                blob: {
+                  type: "blob",
+                  oid: blob.id,
+                  rid: repository_id,
+                  content: blob.data,
+                  commit_sha: target_sha
+                }
+              }
           end
         end
 
@@ -100,10 +124,11 @@ module Elasticsearch
             if obj.type == :commit
               client_for_indexing.index \
                 index: "#{self.class.index_name}",
-                type: "commit",
+                type: "repository",
                 id: "#{repository_id}_#{obj.oid}",
                 body: {
                   commit: {
+                    type: "commit",
                     rid: repository_id,
                     sha: obj.oid,
                     author: obj.author,
@@ -129,19 +154,52 @@ module Elasticsearch
           result = []
 
           target_sha = repository_for_indexing.head.target
-          repository_for_indexing.index.each do |blob|
-            b = EasyBlob.new(repository_for_indexing, blob)
+
+          if repository_for_indexing.bare?
+            tree = repository_for_indexing.lookup(target_sha).tree
+            result.push(recurse_blobs_index_hash(tree))
+          else
+            repository_for_indexing.index.each do |blob|
+              b = EasyBlob.new(repository_for_indexing, blob)
+              result.push(
+                {
+                  type: 'blob',
+                  id: "#{target_sha}_#{b.path}",
+                  rid: repository_id,
+                  oid: b.id,
+                  content: b.data,
+                  commit_sha: target_sha
+                }
+              ) if b.text?
+            end
+          end
+
+          result
+        end
+
+        def recurse_blobs_index_hash(tree, path = "")
+          result = []
+
+          tree.each_blob do |blob|
+            blob[:path] = path + blob[:name]
+            b = LiteBlob.new(repository_for_indexing, blob)
             result.push(
               {
-                id: "#{target_sha}_#{b.path}",
+                type: 'blob',
+                id: "#{repository_for_indexing.head.target}_#{path}#{blob[:name]}",
+                rid: repository_id,
                 oid: b.id,
                 content: b.data,
-                commit_sha: target_sha
+                commit_sha: repository_for_indexing.head.target
               }
             ) if b.text?
           end
 
-          result
+          tree.each_tree do |nested_tree|
+            result.push(recurse_blobs_index_hash(repository_for_indexing.lookup(nested_tree[:oid]), "#{nested_tree[:name]}/"))
+          end
+
+          result.flatten
         end
 
         # Lookup all object ids for commit objects
@@ -153,6 +211,7 @@ module Elasticsearch
             if obj.type == :commit
               res.push(
                 {
+                  type: 'commit',
                   sha: obj.oid,
                   author: obj.author,
                   committer: obj.committer,
@@ -167,25 +226,112 @@ module Elasticsearch
 
         # Repository id used for identity data from different repositories
         # Update this value if need
-        def set_repository_id id
+        def set_repository_id id = nil
           @repository_id = id || path_to_repo
+        end
+
+        # For Overwrite
+        def repository_id
+          @repository_id
+        end
+
+        unless defined?(path_to_repo)
+          def path_to_repo
+            if @path_to_repo.blank?
+              raise NotImplementedError, 'Please, define "path_to_repo" method, or set "path_to_repo" via "repository_for_indexing" method'
+            else
+              @path_to_repo
+            end
+          end
         end
 
         def repository_for_indexing(repo_path = "")
           @path_to_repo ||= repo_path
+          set_repository_id
           Rugged::Repository.new(@path_to_repo)
         end
 
         def client_for_indexing
           @client_for_indexing ||= Elasticsearch::Client.new log: true
         end
+      end
 
+      module ClassMethods
+        def search(query, type: :all, page: 1, per: 20, options: {})
+          results = { blobs: [], commits: []}
+          case type.to_sym
+          when :all
+            results[:blobs] = search_blob(query, page: page, per: per, options: options)
+            results[:commits] = search_commit(query, page: page, per: per, options: options)
+          when :blob
+            results[:blobs] = search_blob(query, page: page, per: per, options: options)
+          when :commit
+            results[:commits] = search_commit(query, page: page, per: per, options: options)
+          end
+
+          results
+        end
+
+        def search_commit(query, page: 1, per: 20, options: {})
+          page ||= 1
+
+          fields = %w(message^10 sha^5 author.name^2 author.email^2 committer.name committer.email).map {|i| "commit.#{i}"}
+
+          query_hash = {
+            query: {
+              filtered: {
+                query: {
+                  multi_match: {
+                    fields: fields,
+                    query: "#{query}",
+                    operator: :and
+                  }
+                },
+              },
+            },
+            size: per,
+            from: per * (page - 1)
+          }
+
+          if query.blank?
+            query_hash[:query][:filtered][:query] = { match_all: {}}
+            query_hash[:track_scores] = true
+          end
+
+          if options[:highlight]
+            query_hash[:highlight] = { fields: options[:in].inject({}) { |a, o| a[o.to_sym] = {} } }
+          end
+
+          self.__elasticsearch__.search(query_hash).results
+        end
+
+        def search_blob(query, type: :all, page: 1, per: 20, options: {})
+          page ||= 1
+
+          query_hash = {
+            query: {
+              match: {
+                'blob.content' => {
+                  query: "#{query}",
+                  operator: :and
+                }
+              }
+            },
+            size: per,
+            from: per * (page - 1)
+          }
+
+          if options[:highlight]
+            query_hash[:highlight] = { fields: options[:in].inject({}) { |a, o| a[o.to_sym] = {} } }
+          end
+
+          self.__elasticsearch__.search(query_hash).results
+        end
       end
     end
 
     class LiteBlob
       include Linguist::BlobHelper
-      include EncodingHelper
 
       attr_accessor :id, :name, :path, :data, :commit_id
 
@@ -194,6 +340,37 @@ module Elasticsearch
         @path = raw_blob_hash[:path]
         @name = @path.split("/").last
         @data = encode!(repo.lookup(@id).content)
+      end
+
+      def encode!(message)
+        return nil unless message.respond_to? :force_encoding
+
+        # if message is utf-8 encoding, just return it
+        message.force_encoding("UTF-8")
+        return message if message.valid_encoding?
+
+        # return message if message type is binary
+        detect = CharlockHolmes::EncodingDetector.detect(message)
+        return message.force_encoding("BINARY") if detect && detect[:type] == :binary
+
+        # encoding message to detect encoding
+        if detect && detect[:encoding]
+          message.force_encoding(detect[:encoding])
+        end
+
+        # encode and clean the bad chars
+        message.replace clean(message)
+      rescue
+        encoding = detect ? detect[:encoding] : "unknown"
+        "--broken encoding: #{encoding}"
+      end
+
+      private
+
+      def clean(message)
+        message.encode("UTF-16BE", :undef => :replace, :invalid => :replace, :replace => "")
+        .encode("UTF-8")
+        .gsub("\0".encode("UTF-8"), "")
       end
     end
   end
