@@ -95,6 +95,44 @@ Repository.search("some_query", type: :commit)
 
 Repository.search("some_query", type: :commit, page: 2, per: 50)
 # => ...
+
+Repository.search("some_query", options: { repository_id: Project.last.id })
+# => {blobs: [{}, {}, {}], commits: [{}, {}, {}]}
+
+Repository.search("some_query", options: { repository_id: current_user.authorized_projects.ids })
+# => {blobs: [{}, {}, {}], commits: [{}, {}, {}]}
+
+Project.last.repository.search("Copyright")[:blobs].first
+=> #<Elasticsearch::Model::Response::Result:0xbb84b3fc
+ @result=
+  {"_index"=>"repository-index-development",
+   "_type"=>"repository",
+   "_id"=>"4328_LICENSE.txt",
+   "_score"=>0.034848917,
+   "_source"=>
+    {"blob"=>
+      {"type"=>"blob",
+       "oid"=>"f99909cd4ecb6f2ad08f8e55aac3a9fcd86a2bd2",
+       "rid"=>4328,
+       "content"=>
+        "Copyright (c) 2014 Andrey Kumanyaev\n\nMIT
+License\n\nPermission is hereby granted, free of charge, to any person
+obtaining\na copy of this software and associated documentation files
+(the\n\"Software\"), to deal in the Software without restriction,
+including\nwithout limitation the rights to use, copy, modify, merge,
+publish,\ndistribute, sublicense, and/or sell copies of the Software,
+and to\npermit persons to whom the Software is furnished to do so,
+subject to\nthe following conditions:\n\nThe above copyright notice and
+this permission notice shall be\nincluded in all copies or substantial
+portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT
+WARRANTY OF ANY KIND,\nEXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+THE WARRANTIES OF\nMERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
+AND\nNONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+BE\nLIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION\nOF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION\nWITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.\n",
+       "commit_sha"=>"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"}}}>
 ```
 
 ## Examples
@@ -265,10 +303,6 @@ Project.last.repository.as_indexed_json
       :time=>2014-02-15 14:28:43 +0400},
     :message=>"first commit\n"}]}
 ```
-
-## TODO
-
-  * Filter by Project
 
 ## Contributing
 

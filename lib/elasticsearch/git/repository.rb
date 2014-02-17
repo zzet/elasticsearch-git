@@ -285,6 +285,11 @@ module Elasticsearch
           res
         end
 
+        def search(query, type: :all, page: 1, per: 20, options: {})
+          options[:repository_id] = repository_id if options[:repository_id].nil?
+          self.class.search(query, type: type, page: page, per: per, options: options)
+        end
+
         # Repository id used for identity data from different repositories
         # Update this value if need
         def set_repository_id id = nil
@@ -359,6 +364,15 @@ module Elasticsearch
             query_hash[:track_scores] = true
           end
 
+          if options[:repository_id]
+            query_hash[:query][:filtered][:filter] ||= { and: [] }
+            query_hash[:query][:filtered][:filter][:and] << {
+              terms: {
+                "commit.rid" => [options[:repository_id]].flatten
+              }
+            }
+          end
+
           if options[:highlight]
             query_hash[:highlight] = { fields: options[:in].inject({}) { |a, o| a[o.to_sym] = {} } }
           end
@@ -371,16 +385,29 @@ module Elasticsearch
 
           query_hash = {
             query: {
-              match: {
-                'blob.content' => {
-                  query: "#{query}",
-                  operator: :and
+              filtered: {
+                query: {
+                  match: {
+                    'blob.content' => {
+                      query: "#{query}",
+                      operator: :and
+                    }
+                  }
                 }
               }
             },
             size: per,
             from: per * (page - 1)
           }
+
+          if options[:repository_id]
+            query_hash[:query][:filtered][:filter] ||= { and: [] }
+            query_hash[:query][:filtered][:filter][:and] << {
+              terms: {
+                "blob.rid" => [options[:repository_id]].flatten
+              }
+            }
+          end
 
           if options[:highlight]
             query_hash[:highlight] = { fields: options[:in].inject({}) { |a, o| a[o.to_sym] = {} } }
