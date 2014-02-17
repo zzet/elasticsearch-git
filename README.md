@@ -43,6 +43,9 @@ repo = Repository.new
 repo.index_commits
 repo.index_blobs
 
+repo.index_commits(from_rev: "1802bafa70d3b1678cfa46a482fd396dd8a4bd40", to_rev: "8d4175e9f4a36065b52fa752c1fd3594c82c0f28")
+repo.index_blobs(from_rev: "1802bafa70d3b1678cfa46a482fd396dd8a4bd40", to_rev: "8d4175e9f4a36065b52fa752c1fd3594c82c0f28")
+
 Repository.search("query", type: 'blob')
 Repository.search("query", type: 'commit')
 
@@ -266,7 +269,6 @@ Project.last.repository.as_indexed_json
 ## TODO
 
   * Filter by Project
-  * Indexing new and changed blobs with push
 
 ## Contributing
 
