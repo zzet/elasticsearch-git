@@ -67,8 +67,20 @@ module RepositoriesSearch
       project.id
     end
   end
-end
 
+  module ClassMethods
+    def import
+      Repository.__elasticsearch__.create_index! force: true
+
+      Project.find_each do |project|
+        if project.repository.exists? && !project.repository.empty?
+          project.repository.index_commits
+          project.repository.index_blobs
+        end
+      end
+    end
+  end
+end
 
 # app/models/repository.rb
 class Repository
@@ -80,7 +92,9 @@ class Repository
   #...
 end
 
-Project.last.repository.__elasticsearch__.create_index! force: true
+Repository.import # for indexing all repositories
+
+Repository.__elasticsearch__.create_index! force: true
 Project.last.repository.index_commits
 Project.last.repository.index_blobs
 
