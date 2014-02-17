@@ -53,19 +53,50 @@ module Elasticsearch
         # }
         #
         # For search from blobs use type 'blob'
-        def index_blobs
-          target_sha = repository_for_indexing.head.target
+        def index_blobs(from_rev: nil, to_rev: nil)
 
-          if repository_for_indexing.bare?
-            recurse_blobs_index(repository_for_indexing.lookup(target_sha).tree, target_sha)
+          if to_rev.present?
+            begin
+              raise unless repository_for_indexing.lookup(to_rev).type == :commit
+            rescue
+              raise ArgumentError, "'to_rev': '#{to_rev}' is a incorrect commit sha."
+            end
           else
-            repository_for_indexing.index.each do |blob|
-              b = LiteBlob.new(repository_for_indexing, blob)
-              index_blob(b, target_sha)
+            to_rev = repository_for_indexing.head.target
+          end
+
+          target_sha = to_rev
+
+          if from_rev.present?
+            begin
+              raise unless repository_for_indexing.lookup(from_rev).type == :commit
+            rescue
+              raise ArgumentError, "'from_rev': '#{from_rev}' is a incorrect commit sha."
+            end
+
+            diff = repository_for_indexing.diff(from_rev, to_rev)
+            diff.deltas.reverse.each do |delta|
+              if delta.status == :deleted
+                b = LiteBlob.new(repository_for_indexing, delta.old_file)
+                delete_from_index_blob(b)
+              else
+                b = LiteBlob.new(repository_for_indexing, delta.new_file)
+                index_blob(b, target_sha)
+              end
+            end
+          else
+            if repository_for_indexing.bare?
+              recurse_blobs_index(repository_for_indexing.lookup(target_sha).tree, target_sha)
+            else
+              repository_for_indexing.index.each do |blob|
+                b = LiteBlob.new(repository_for_indexing, blob)
+                index_blob(b, target_sha)
+              end
             end
           end
         end
 
+        # Indexing bare repository via walking through tree
         def recurse_blobs_index(tree, target_sha, path = "")
           tree.each_blob do |blob|
             blob[:path] = path + blob[:name]
@@ -96,6 +127,19 @@ module Elasticsearch
           end
         end
 
+        def delete_from_index_blob(blob)
+          if blob.text?
+            begin
+              client_for_indexing.delete \
+                index: "#{self.class.index_name}",
+                type: "repository",
+                id: "#{repository_id}_#{blob.path}"
+            rescue Elasticsearch::Transport::Transport::Errors::NotFound
+              return true
+            end
+          end
+        end
+
         # Indexing all commits in repository
         #
         # All data stored in global index
@@ -118,26 +162,43 @@ module Elasticsearch
         # }
         #
         # For search from commits use type 'commit'
-        def index_commits
-          repository_for_indexing.each_id do |oid|
-            obj = repository_for_indexing.lookup(oid)
-            if obj.type == :commit
-              client_for_indexing.index \
-                index: "#{self.class.index_name}",
-                type: "repository",
-                id: "#{repository_id}_#{obj.oid}",
-                body: {
-                  commit: {
-                    type: "commit",
-                    rid: repository_id,
-                    sha: obj.oid,
-                    author: obj.author,
-                    committer: obj.committer,
-                    message: obj.message
-                  }
-                }
+        def index_commits(from_rev: nil, to_rev: nil)
+          if from_rev.present? && to_rev.present?
+            begin
+              raise unless repository_for_indexing.lookup(from_rev).type == :commit
+              raise unless repository_for_indexing.lookup(from_rev).type == :commit
+            rescue
+              raise ArgumentError, "'from_rev': '#{from_rev}' is a incorrect commit sha."
+            end
+
+            repository_for_indexing.walk(from_rev, to_rev).each do |commit|
+              index_commit(commit)
+            end
+          else
+            repository_for_indexing.each_id do |oid|
+              obj = repository_for_indexing.lookup(oid)
+              if obj.type == :commit
+                index_commit(obj)
+              end
             end
           end
+        end
+
+        def index_commit(commit)
+          client_for_indexing.index \
+            index: "#{self.class.index_name}",
+            type: "repository",
+            id: "#{repository_id}_#{commit.oid}",
+            body: {
+              commit: {
+                type: "commit",
+                rid: repository_id,
+                sha: commit.oid,
+                author: commit.author,
+                committer: commit.committer,
+                message: commit.message
+              }
+            }
         end
 
         # Representation of repository as indexed json
