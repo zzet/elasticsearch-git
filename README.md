@@ -1,7 +1,5 @@
 # Elasticsearch::Git
 
-Attention: Pre-pre-pre beta code. Not production.
-
 [Elasticsearch](https://github.com/elasticsearch/elasticsearch-rails/tree/master/elasticsearch-model) integrations for git repositories
 
 ## Installation
