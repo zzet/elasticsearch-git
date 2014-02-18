@@ -57,7 +57,9 @@ module Elasticsearch
 
           if to_rev.present?
             begin
-              raise unless repository_for_indexing.lookup(to_rev).type == :commit
+              if to_rev != "0000000000000000000000000000000000000000"
+                raise unless repository_for_indexing.lookup(to_rev).type == :commit
+              end
             rescue
               raise ArgumentError, "'to_rev': '#{to_rev}' is a incorrect commit sha."
             end
@@ -69,7 +71,9 @@ module Elasticsearch
 
           if from_rev.present?
             begin
-              raise unless repository_for_indexing.lookup(from_rev).type == :commit
+              if from_rev != "0000000000000000000000000000000000000000"
+                raise unless repository_for_indexing.lookup(from_rev).type == :commit
+              end
             rescue
               raise ArgumentError, "'from_rev': '#{from_rev}' is a incorrect commit sha."
             end
@@ -165,8 +169,12 @@ module Elasticsearch
         def index_commits(from_rev: nil, to_rev: nil)
           if from_rev.present? && to_rev.present?
             begin
-              raise unless repository_for_indexing.lookup(from_rev).type == :commit
-              raise unless repository_for_indexing.lookup(from_rev).type == :commit
+              if from_rev != "0000000000000000000000000000000000000000"
+                raise unless repository_for_indexing.lookup(from_rev).type == :commit
+              end
+              if to_rev != "0000000000000000000000000000000000000000"
+                raise unless repository_for_indexing.lookup(to_rev).type == :commit
+              end
             rescue
               raise ArgumentError, "'from_rev': '#{from_rev}' is a incorrect commit sha."
             end
