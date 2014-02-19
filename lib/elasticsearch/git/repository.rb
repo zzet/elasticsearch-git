@@ -87,7 +87,7 @@ module Elasticsearch
                 b = LiteBlob.new(repository_for_indexing, delta.new_file)
                 index_blob(b, target_sha)
               end
-              GC.garbage_collect if step % 100 == 0
+              ObjectSpace.garbage_collect if step % 100 == 0
             end
           else
             if repository_for_indexing.bare?
@@ -96,7 +96,7 @@ module Elasticsearch
               repository_for_indexing.index.each_with_index do |blob, step|
                 b = LiteBlob.new(repository_for_indexing, blob)
                 index_blob(b, target_sha)
-                GC.garbage_collect if step % 100 == 0
+                ObjectSpace.garbage_collect if step % 100 == 0
               end
             end
           end
@@ -110,7 +110,7 @@ module Elasticsearch
             index_blob(b, target_sha)
           end
 
-          GC.garbage_collect if step % 100 == 0
+          ObjectSpace.garbage_collect if step % 100 == 0
 
           tree.each_tree do |nested_tree|
             recurse_blobs_index(repository_for_indexing.lookup(nested_tree[:oid]), target_sha, "#{path}#{nested_tree[:name]}/")
@@ -191,7 +191,7 @@ module Elasticsearch
 
             walker.each_with_index do |commit, step|
               index_commit(commit)
-              GC.garbage_collect if step % 100 == 0
+              ObjectSpace.garbage_collect if step % 100 == 0
             end
           else
             step = 0
@@ -201,7 +201,7 @@ module Elasticsearch
               if obj.type == :commit
                 index_commit(obj)
               end
-              GC.garbage_collect if step % 100 == 0
+              ObjectSpace.garbage_collect if step % 100 == 0
             end
           end
         end
