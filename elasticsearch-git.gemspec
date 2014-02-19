@@ -18,11 +18,11 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
 
-  spec.add_runtime_dependency 'elasticsearch-model'
-  spec.add_runtime_dependency 'elasticsearch-api'
-  spec.add_runtime_dependency 'rugged'
-  spec.add_runtime_dependency 'charlock_holmes'
-  spec.add_runtime_dependency 'gitlab-linguist'
-  spec.add_runtime_dependency 'activemodel'
-  spec.add_runtime_dependency 'activesupport'
+  spec.add_runtime_dependency 'elasticsearch-model', '~> 0.1.0'
+  spec.add_runtime_dependency 'elasticsearch-api', '~> 1.0.0'
+  spec.add_runtime_dependency 'rugged', '~> 0.19.0'
+  spec.add_runtime_dependency 'charlock_holmes', '~> 0.6.9'
+  spec.add_runtime_dependency 'gitlab-linguist', '~> 3.0.0'
+  spec.add_runtime_dependency 'activemodel', '~> 4.0.0'
+  spec.add_runtime_dependency 'activesupport', '~> 4.0.0'
 end
