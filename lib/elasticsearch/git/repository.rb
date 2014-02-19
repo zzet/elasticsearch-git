@@ -167,9 +167,9 @@ module Elasticsearch
         #
         # For search from commits use type 'commit'
         def index_commits(from_rev: nil, to_rev: nil)
-          if from_rev.present? && to_rev.present?
+          if to_rev.present?
             begin
-              if from_rev != "0000000000000000000000000000000000000000"
+              if from_rev.present? && from_rev != "0000000000000000000000000000000000000000"
                 raise unless repository_for_indexing.lookup(from_rev).type == :commit
               end
               if to_rev != "0000000000000000000000000000000000000000"
@@ -179,7 +179,13 @@ module Elasticsearch
               raise ArgumentError, "'from_rev': '#{from_rev}' is a incorrect commit sha."
             end
 
-            repository_for_indexing.walk(from_rev, to_rev).each do |commit|
+            walker = if from_rev == "0000000000000000000000000000000000000000" || from_rev.nil?
+                       repository_for_indexing.walk(to_rev)
+                     else
+                       repository_for_indexing.walk(from_rev, to_rev)
+                     end
+
+            walker.each do |commit|
               index_commit(commit)
             end
           else
@@ -464,7 +470,7 @@ module Elasticsearch
       private
 
       def clean(message)
-        message.encode("UTF-16BE", :undef => :replace, :invalid => :replace, :replace => "")
+        message.encode("UTF-16BE", undef: :replace, invalid: :replace, replace: "")
         .encode("UTF-8")
         .gsub("\0".encode("UTF-8"), "")
       end
