@@ -110,7 +110,7 @@ module Elasticsearch
             index_blob(b, target_sha)
           end
 
-          ObjectSpace.garbage_collect if step % 100 == 0
+          ObjectSpace.garbage_collect
 
           tree.each_tree do |nested_tree|
             recurse_blobs_index(repository_for_indexing.lookup(nested_tree[:oid]), target_sha, "#{path}#{nested_tree[:name]}/")
