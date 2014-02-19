@@ -372,7 +372,7 @@ module Elasticsearch
                   multi_match: {
                     fields: fields,
                     query: "#{query}",
-                    operator: :and
+                    operator: :or
                   }
                 },
               },
@@ -412,7 +412,7 @@ module Elasticsearch
                   match: {
                     'blob.content' => {
                       query: "#{query}",
-                      operator: :and
+                      operator: :or
                     }
                   }
                 }
