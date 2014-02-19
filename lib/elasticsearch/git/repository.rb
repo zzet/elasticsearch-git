@@ -79,7 +79,7 @@ module Elasticsearch
             end
 
             diff = repository_for_indexing.diff(from_rev, to_rev)
-            diff.deltas.reverse.each do |delta|
+            diff.deltas.reverse.each_with_index do |delta, step|
               if delta.status == :deleted
                 b = LiteBlob.new(repository_for_indexing, delta.old_file)
                 delete_from_index_blob(b)
@@ -87,14 +87,16 @@ module Elasticsearch
                 b = LiteBlob.new(repository_for_indexing, delta.new_file)
                 index_blob(b, target_sha)
               end
+              GC.garbage_collect if step % 100 == 0
             end
           else
             if repository_for_indexing.bare?
               recurse_blobs_index(repository_for_indexing.lookup(target_sha).tree, target_sha)
             else
-              repository_for_indexing.index.each do |blob|
+              repository_for_indexing.index.each_with_index do |blob, step|
                 b = LiteBlob.new(repository_for_indexing, blob)
                 index_blob(b, target_sha)
+                GC.garbage_collect if step % 100 == 0
               end
             end
           end
@@ -107,6 +109,8 @@ module Elasticsearch
             b = LiteBlob.new(repository_for_indexing, blob)
             index_blob(b, target_sha)
           end
+
+          GC.garbage_collect if step % 100 == 0
 
           tree.each_tree do |nested_tree|
             recurse_blobs_index(repository_for_indexing.lookup(nested_tree[:oid]), target_sha, "#{path}#{nested_tree[:name]}/")
@@ -185,15 +189,19 @@ module Elasticsearch
                        repository_for_indexing.walk(from_rev, to_rev)
                      end
 
-            walker.each do |commit|
+            walker.each_with_index do |commit, step|
               index_commit(commit)
+              GC.garbage_collect if step % 100 == 0
             end
           else
+            step = 0
             repository_for_indexing.each_id do |oid|
+              step += 1
               obj = repository_for_indexing.lookup(oid)
               if obj.type == :commit
                 index_commit(obj)
               end
+              GC.garbage_collect if step % 100 == 0
             end
           end
         end
@@ -334,10 +342,8 @@ module Elasticsearch
         def client_for_indexing
           @client_for_indexing ||= Elasticsearch::Client.new log: true
         end
-      end
 
-      module ClassMethods
-        def search(query, type: :all, page: 1, per: 20, options: {})
+        def self.search(query, type: :all, page: 1, per: 20, options: {})
           results = { blobs: [], commits: []}
           case type.to_sym
           when :all
@@ -351,7 +357,9 @@ module Elasticsearch
 
           results
         end
+      end
 
+      module ClassMethods
         def search_commit(query, page: 1, per: 20, options: {})
           page ||= 1
 
