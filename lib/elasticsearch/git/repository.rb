@@ -12,6 +12,7 @@ module Elasticsearch
 
       included do
         include Elasticsearch::Git::Model
+        include EncoderHelper
 
         mapping do
           indexes :blob do
@@ -20,6 +21,7 @@ module Elasticsearch
             indexes :oid,         type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
             indexes :commit_sha,  type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
             indexes :content,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,   index_analyzer: :human_analyzer
+            indexes :language,    type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,   index_analyzer: :human_analyzer
           end
           indexes :commit do
             indexes :id,          type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,  index_analyzer: :human_analyzer
@@ -119,19 +121,23 @@ module Elasticsearch
 
         def index_blob(blob, target_sha)
           if blob.text?
-            client_for_indexing.index \
-              index: "#{self.class.index_name}",
-              type: "repository",
-              id: "#{repository_id}_#{blob.path}",
-              body: {
-                blob: {
-                  type: "blob",
-                  oid: blob.id,
-                  rid: repository_id,
-                  content: blob.data,
-                  commit_sha: target_sha
+            begin
+              client_for_indexing.index \
+                index: "#{self.class.index_name}",
+                type: "repository",
+                id: "#{repository_id}_#{blob.path}",
+                body: {
+                  blob: {
+                    type: "blob",
+                    oid: blob.id,
+                    rid: repository_id,
+                    content: blob.data,
+                    commit_sha: target_sha,
+                    language: blob.language.name
+                  }
                 }
-              }
+            rescue
+            end
           end
         end
 
@@ -207,20 +213,23 @@ module Elasticsearch
         end
 
         def index_commit(commit)
-          client_for_indexing.index \
-            index: "#{self.class.index_name}",
-            type: "repository",
-            id: "#{repository_id}_#{commit.oid}",
-            body: {
-              commit: {
-                type: "commit",
-                rid: repository_id,
-                sha: commit.oid,
-                author: commit.author,
-                committer: commit.committer,
-                message: commit.message
+          begin
+            client_for_indexing.index \
+              index: "#{self.class.index_name}",
+              type: "repository",
+              id: "#{repository_id}_#{commit.oid}",
+              body: {
+                commit: {
+                  type: "commit",
+                  rid: repository_id,
+                  sha: commit.oid,
+                  author: commit.author,
+                  committer: commit.committer,
+                  message: encode!(commit.message)
+                }
               }
-            }
+          rescue
+          end
         end
 
         # Representation of repository as indexed json
@@ -243,7 +252,7 @@ module Elasticsearch
             result.push(recurse_blobs_index_hash(tree))
           else
             repository_for_indexing.index.each do |blob|
-              b = EasyBlob.new(repository_for_indexing, blob)
+              b = LiteBlob.new(repository_for_indexing, blob)
               result.push(
                 {
                   type: 'blob',
@@ -298,7 +307,7 @@ module Elasticsearch
                   sha: obj.oid,
                   author: obj.author,
                   committer: obj.committer,
-                  message: obj.message
+                  message: encode!(obj.message)
                 }
               )
             end
@@ -334,9 +343,11 @@ module Elasticsearch
         end
 
         def repository_for_indexing(repo_path = "")
+          return @rugged_repo_indexer if defined? @rugged_repo_indexer
+
           @path_to_repo ||= repo_path
           set_repository_id
-          Rugged::Repository.new(@path_to_repo)
+          @rugged_repo_indexer = Rugged::Repository.new(@path_to_repo)
         end
 
         def client_for_indexing
@@ -442,45 +453,52 @@ module Elasticsearch
 
     class LiteBlob
       include Linguist::BlobHelper
+      include EncoderHelper
 
       attr_accessor :id, :name, :path, :data, :commit_id
 
       def initialize(repo, raw_blob_hash)
         @id = raw_blob_hash[:oid]
-        @path = raw_blob_hash[:path]
-        @name = @path.split("/").last
+        @path = encode!(raw_blob_hash[:path])
+        @name = @path.split('/').last
         @data = encode!(repo.lookup(@id).content)
       end
+    end
 
-      def encode!(message)
-        return nil unless message.respond_to? :force_encoding
+    module EncoderHelper
+      extend ActiveSupport::Concern
 
-        # if message is utf-8 encoding, just return it
-        message.force_encoding("UTF-8")
-        return message if message.valid_encoding?
+      included do
+        def encode!(message)
+          return nil unless message.respond_to? :force_encoding
 
-        # return message if message type is binary
-        detect = CharlockHolmes::EncodingDetector.detect(message)
-        return message.force_encoding("BINARY") if detect && detect[:type] == :binary
+          # if message is utf-8 encoding, just return it
+          message.force_encoding("UTF-8")
+          return message if message.valid_encoding?
 
-        # encoding message to detect encoding
-        if detect && detect[:encoding]
-          message.force_encoding(detect[:encoding])
+          # return message if message type is binary
+          detect = CharlockHolmes::EncodingDetector.detect(message)
+          return message.force_encoding("BINARY") if detect && detect[:type] == :binary
+
+          # encoding message to detect encoding
+          if detect && detect[:encoding]
+            message.force_encoding(detect[:encoding])
+          end
+
+          # encode and clean the bad chars
+          message.replace clean(message)
+        rescue
+          encoding = detect ? detect[:encoding] : "unknown"
+          "--broken encoding: #{encoding}"
         end
 
-        # encode and clean the bad chars
-        message.replace clean(message)
-      rescue
-        encoding = detect ? detect[:encoding] : "unknown"
-        "--broken encoding: #{encoding}"
-      end
+        private
 
-      private
-
-      def clean(message)
-        message.encode("UTF-16BE", undef: :replace, invalid: :replace, replace: "")
-        .encode("UTF-8")
-        .gsub("\0".encode("UTF-8"), "")
+        def clean(message)
+          message.encode("UTF-16BE", undef: :replace, invalid: :replace, replace: "")
+          .encode("UTF-8")
+          .gsub("\0".encode("UTF-8"), "")
+        end
       end
     end
   end
