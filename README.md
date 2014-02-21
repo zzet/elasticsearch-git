@@ -316,6 +316,10 @@ Project.last.repository.as_indexed_json
     :message=>"first commit\n"}]}
 ```
 
+## TODO
+
+    * Add Exceptions handlers for indexing (Error connections and timeouts)
+
 ## Contributing
 
 1. Fork it ( http://github.com/[my-github-username]/elasticsearch-git/fork )
