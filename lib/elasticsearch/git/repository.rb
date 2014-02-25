@@ -12,7 +12,7 @@ module Elasticsearch
 
       included do
         include Elasticsearch::Git::Model
-        include EncoderHelper
+        include Elasticsearch::Git::EncoderHelper
 
         mapping do
           indexes :blob do
@@ -133,7 +133,7 @@ module Elasticsearch
                     rid: repository_id,
                     content: blob.data,
                     commit_sha: target_sha,
-                    language: blob.language.name
+                    language: blob.lexer.name
                   }
                 }
             rescue
@@ -453,7 +453,7 @@ module Elasticsearch
 
     class LiteBlob
       include Linguist::BlobHelper
-      include EncoderHelper
+      include Elasticsearch::Git::EncoderHelper
 
       attr_accessor :id, :name, :path, :data, :commit_id
 
