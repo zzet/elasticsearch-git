@@ -196,11 +196,11 @@ module Elasticsearch
                 walker.hide(from_rev)
               end
 
-            commits = walker.to_a
+            commits = walker.map { |c| c.oid }
             walker.reset
 
             commits.each_with_index do |commit, step|
-              index_commit(commit)
+              index_commit(repository_for_indexing.lookup(commit))
               ObjectSpace.garbage_collect if step % 100 == 0
             end
           else
