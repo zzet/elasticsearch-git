@@ -190,13 +190,16 @@ module Elasticsearch
               raise ArgumentError, "'from_rev': '#{from_rev}' is a incorrect commit sha."
             end
 
-            walker = if from_rev == "0000000000000000000000000000000000000000" || from_rev.nil?
-                       repository_for_indexing.walk(to_rev)
-                     else
-                       repository_for_indexing.walk(from_rev, to_rev)
-                     end
+            walker = Rugged::Walker.new(repository_for_indexing)
+            walker.push(to_rev)
+              if from_rev == "0000000000000000000000000000000000000000" || from_rev.nil?
+                walker.hide(from_rev)
+              end
 
-            walker.each_with_index do |commit, step|
+            commits = walker.to_a
+            walker.reset
+
+            commits.each_with_index do |commit, step|
               index_commit(commit)
               ObjectSpace.garbage_collect if step % 100 == 0
             end
