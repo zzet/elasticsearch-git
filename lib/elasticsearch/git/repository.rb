@@ -179,24 +179,25 @@ module Elasticsearch
         # For search from commits use type 'commit'
         def index_commits(from_rev: nil, to_rev: nil)
           if to_rev.present?
-            begin
-              if from_rev.present? && from_rev != "0000000000000000000000000000000000000000"
-                raise unless repository_for_indexing.lookup(from_rev).type == :commit
-              end
-            rescue
-              raise ArgumentError, "'from_rev': '#{from_rev}' is a incorrect commit sha."
-            end
-
             if to_rev != "0000000000000000000000000000000000000000"
+              # If to_rev correct
               begin
                 raise unless repository_for_indexing.lookup(to_rev).type == :commit
               rescue
                 raise ArgumentError, "'to_rev': '#{to_rev}' is a incorrect commit sha."
               end
 
+              begin
+                if from_rev.present? && from_rev != "0000000000000000000000000000000000000000"
+                  raise unless repository_for_indexing.lookup(from_rev).type == :commit
+                end
+              rescue
+                raise ArgumentError, "'from_rev': '#{from_rev}' is a incorrect commit sha."
+              end
+
               walker = Rugged::Walker.new(repository_for_indexing)
               walker.push(to_rev)
-              if from_rev == "0000000000000000000000000000000000000000" || from_rev.nil?
+              if from_rev != "0000000000000000000000000000000000000000" && from_rev.present?
                 walker.hide(from_rev)
               end
 
