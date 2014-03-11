@@ -121,7 +121,7 @@ module Elasticsearch
         end
 
         def index_blob(blob, target_sha)
-          if blob.text?
+          if can_index_blob?(blob)
             begin
               client_for_indexing.index \
                 index: "#{self.class.index_name}",
@@ -140,6 +140,10 @@ module Elasticsearch
             rescue
             end
           end
+        end
+
+        def can_index_blob?(blob)
+          blob.text? && blob.size < 1048576
         end
 
         def delete_from_index_blob(blob)
