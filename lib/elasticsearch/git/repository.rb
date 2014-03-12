@@ -82,6 +82,7 @@ module Elasticsearch
             end
 
             diff = repository_for_indexing.diff(from_rev, to_rev)
+
             diff.deltas.reverse.each_with_index do |delta, step|
               if delta.status == :deleted
                 b = LiteBlob.new(repository_for_indexing, delta.old_file)
@@ -90,6 +91,8 @@ module Elasticsearch
                 b = LiteBlob.new(repository_for_indexing, delta.new_file)
                 index_blob(b, target_sha)
               end
+
+              # Run GC every 100 blobs
               ObjectSpace.garbage_collect if step % 100 == 0
             end
           else
@@ -99,6 +102,8 @@ module Elasticsearch
               repository_for_indexing.index.each_with_index do |blob, step|
                 b = LiteBlob.new(repository_for_indexing, blob)
                 index_blob(b, target_sha)
+
+                # Run GC every 100 blobs
                 ObjectSpace.garbage_collect if step % 100 == 0
               end
             end
@@ -113,6 +118,7 @@ module Elasticsearch
             index_blob(b, target_sha)
           end
 
+          # Run GC every recurse step
           ObjectSpace.garbage_collect
 
           tree.each_tree do |nested_tree|
@@ -142,6 +148,7 @@ module Elasticsearch
           end
         end
 
+        # Index text-like files which size less 1.mb
         def can_index_blob?(blob)
           blob.text? && blob.size < 1048576
         end
