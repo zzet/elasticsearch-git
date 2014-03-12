@@ -128,6 +128,7 @@ module Elasticsearch
 
         def index_blob(blob, target_sha)
           if can_index_blob?(blob)
+            tries = 0
             begin
               client_for_indexing.index \
                 index: "#{self.class.index_name}",
@@ -143,7 +144,15 @@ module Elasticsearch
                     language: blob.lexer.name
                   }
                 }
-            rescue
+            rescue Exception => ex
+              # Retry 10 times send request
+              if tries < 10
+                tries += 1
+                sleep tries * 10 * rand(10)
+                retry
+              else
+                logger.warn "Can't index #{repository_id}_#{blob.path}. Reason: #{ex.message}"
+              end
             end
           end
         end
@@ -234,6 +243,7 @@ module Elasticsearch
         end
 
         def index_commit(commit)
+          tries = 0
           begin
             client_for_indexing.index \
               index: "#{self.class.index_name}",
@@ -249,7 +259,15 @@ module Elasticsearch
                   message: encode!(commit.message)
                 }
               }
-          rescue
+          rescue Exception => ex
+            # Retry 10 times send request
+            if tries < 10
+              tries += 1
+              sleep tries * 10 * rand(10)
+              retry
+            else
+              logger.warn "Can't index #{repository_id}_#{blob.path}. Reason: #{ex.message}"
+            end
           end
         end
 
