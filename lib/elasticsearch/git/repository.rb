@@ -389,6 +389,10 @@ module Elasticsearch
 
           results
         end
+
+        def logger
+          @logger ||= Logger.new(STDOUT)
+        end
       end
 
       module ClassMethods
