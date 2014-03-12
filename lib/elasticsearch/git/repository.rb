@@ -200,45 +200,42 @@ module Elasticsearch
         #
         # For search from commits use type 'commit'
         def index_commits(from_rev: nil, to_rev: nil)
-          if to_rev.present?
-            if to_rev != "0000000000000000000000000000000000000000"
-              # If to_rev correct
-              begin
-                raise unless repository_for_indexing.lookup(to_rev).type == :commit
-              rescue
-                raise ArgumentError, "'to_rev': '#{to_rev}' is a incorrect commit sha."
-              end
+          to_rev = repository_for_indexing.head.target unless to_rev.present?
 
-              begin
-                if from_rev.present? && from_rev != "0000000000000000000000000000000000000000"
-                  raise unless repository_for_indexing.lookup(from_rev).type == :commit
-                end
-              rescue
-                raise ArgumentError, "'from_rev': '#{from_rev}' is a incorrect commit sha."
-              end
-
-              walker = Rugged::Walker.new(repository_for_indexing)
-              walker.push(to_rev)
-              if from_rev != "0000000000000000000000000000000000000000" && from_rev.present?
-                walker.hide(from_rev)
-              end
-
-              commits = walker.map { |c| c.oid }
-              walker.reset
-
-              commits.each_with_index do |commit, step|
-                index_commit(repository_for_indexing.lookup(commit))
-                ObjectSpace.garbage_collect if step % 100 == 0
-              end
+          if to_rev != "0000000000000000000000000000000000000000"
+            # If to_rev correct
+            begin
+              raise unless repository_for_indexing.lookup(to_rev).type == :commit
+            rescue
+              raise ArgumentError, "'to_rev': '#{to_rev}' is a incorrect commit sha."
             end
-          else
-            step = 0
-            repository_for_indexing.each_id do |oid|
-              step += 1
-              obj = repository_for_indexing.lookup(oid)
-              if obj.type == :commit
-                index_commit(obj)
+
+            begin
+              if from_rev.present? && from_rev != "0000000000000000000000000000000000000000"
+                raise unless repository_for_indexing.lookup(from_rev).type == :commit
               end
+            rescue
+              raise ArgumentError, "'from_rev': '#{from_rev}' is a incorrect commit sha."
+            end
+
+            # If pushed new branch no need reindex all repository
+            # Find merge_base and reindex diff
+            if from_rev == "0000000000000000000000000000000000000000" && to_rev != repository_for_indexing.head.target
+              from_rev = repository_for_indexing.merge_base(to_rev, repository_for_indexing.head.target)
+            end
+
+            walker = Rugged::Walker.new(repository_for_indexing)
+            walker.push(to_rev)
+
+            if from_rev.present? && from_rev != "0000000000000000000000000000000000000000"
+              walker.hide(from_rev)
+            end
+
+            commits = walker.map { |c| c.oid }
+            walker.reset
+
+            commits.each_with_index do |commit, step|
+              index_commit(repository_for_indexing.lookup(commit))
               ObjectSpace.garbage_collect if step % 100 == 0
             end
           end
