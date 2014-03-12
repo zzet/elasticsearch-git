@@ -171,6 +171,8 @@ module Elasticsearch
                 id: "#{repository_id}_#{blob.path}"
             rescue Elasticsearch::Transport::Transport::Errors::NotFound
               return true
+            rescue Exception => ex
+              logger.warn "Error with remove file from index #{repository_id}_#{blob.path}. Reason: #{ex.message}"
             end
           end
         end
