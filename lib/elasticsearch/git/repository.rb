@@ -141,7 +141,7 @@ module Elasticsearch
                     rid: repository_id,
                     content: blob.data,
                     commit_sha: target_sha,
-                    language: blob.lexer.name
+                    language: blob.language ? blob.language.name : "Text"
                   }
                 }
             rescue Exception => ex
@@ -159,7 +159,7 @@ module Elasticsearch
 
         # Index text-like files which size less 1.mb
         def can_index_blob?(blob)
-          blob.text? && blob.size < 1048576
+          blob.text? && (blob.size && blob.size.to_i < 1048576)
         end
 
         def delete_from_index_blob(blob)
