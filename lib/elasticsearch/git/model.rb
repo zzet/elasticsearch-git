@@ -42,7 +42,7 @@ module Elasticsearch
             },
             tokenizer: {
               sha_tokenizer: {
-                type: "NGram",
+                type: "edgeNGram",
                 min_gram: 8,
                 max_gram: 40,
                 token_chars: %w(letter digit)
@@ -61,7 +61,7 @@ module Elasticsearch
                 max_gram: 20
               },
               sha_ngrams: {
-                type: "NGram",
+                type: "edgeNGram",
                 min_gram: 8,
                 max_gram: 40
               }
