@@ -265,7 +265,7 @@ module Elasticsearch
               sleep tries * 10 * rand(10)
               retry
             else
-              logger.warn "Can't index #{repository_id}_#{blob.path}. Reason: #{ex.message}"
+              logger.warn "Can't index #{repository_id}_#{commit.oid}. Reason: #{ex.message}"
             end
           end
         end
