@@ -10,9 +10,10 @@ module Elasticsearch
       attr_accessor :id, :name, :path, :data, :size, :mode, :commit_id
 
       def initialize(repo, raw_blob_hash)
+        @id   = raw_blob_hash[:oid]
+
         blob  = repo.lookup(@id)
 
-        @id   = raw_blob_hash[:oid]
         @mode = '%06o' % raw_blob_hash[:filemode]
         @size = blob.size
         @path = encode!(raw_blob_hash[:path])
