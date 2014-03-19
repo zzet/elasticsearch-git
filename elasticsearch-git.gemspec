@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Andrey Kumanyaev"]
   spec.email         = ["me@zzet.org"]
   spec.summary       = %q{Elasticsearch integrations for git repositories.}
-  spec.description   = %q{Elasticsearch integrations for git repositories.}
+  spec.description   = %q{Elasticsearch integrations for indexing git repositories.}
   spec.homepage      = "https://github.com/zzet/elasticsearch-git"
   spec.license       = "MIT"
 
