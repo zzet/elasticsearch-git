@@ -21,6 +21,7 @@ module Elasticsearch
             indexes :rid,         type: :string, index: :not_analyzed
             indexes :oid,         type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
             indexes :commit_sha,  type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
+            indexes :path,        type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,  index_analyzer: :human_analyzer
             indexes :content,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,   index_analyzer: :code_analyzer
             indexes :language,    type: :string, index: :not_analyzed
           end
@@ -141,6 +142,7 @@ module Elasticsearch
                     rid: repository_id,
                     content: blob.data,
                     commit_sha: target_sha,
+                    path: blob.path,
                     language: blob.language ? blob.language.name : "Text"
                   }
                 }
