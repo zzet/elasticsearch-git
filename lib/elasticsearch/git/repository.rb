@@ -451,7 +451,7 @@ module Elasticsearch
           end
 
           if options[:highlight]
-            query_hash[:highlight] = { fields: options[:in].inject({}) { |a, o| a[o.to_sym] = {} } }
+            #query_hash[:highlight] = { fields: options[:in].inject({}) { |a, o| a[o.to_sym] = {} } }
           end
 
           self.__elasticsearch__.search(query_hash).results
@@ -487,7 +487,15 @@ module Elasticsearch
           end
 
           if options[:highlight]
-            query_hash[:highlight] = { fields: options[:in].inject({}) { |a, o| a[o.to_sym] = {} } }
+            query_hash[:highlight] = {
+              pre_tags: [""],
+              post_tags: [""],
+              fields: {
+                "blob.content" => {},
+                "type" => "fvh",
+                "boundary_chars" => "\n"
+              }
+            }
           end
 
           self.__elasticsearch__.search(query_hash).results
