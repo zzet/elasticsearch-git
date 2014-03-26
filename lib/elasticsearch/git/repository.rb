@@ -476,7 +476,8 @@ module Elasticsearch
             facets: {
               languageFacet: {
                 terms: {
-                  field: "language"
+                  field: "language",
+                  all_term: true
                 }
               }
             },
@@ -489,6 +490,15 @@ module Elasticsearch
             query_hash[:query][:filtered][:filter][:and] << {
               terms: {
                 "blob.rid" => [options[:repository_id]].flatten
+              }
+            }
+          end
+
+          if options[:language]
+            query_hash[:query][:filtered][:filter] ||= { and: [] }
+            query_hash[:query][:filtered][:filter][:and] << {
+              terms: {
+                "blob.language" => [options[:language]].flatten
               }
             }
           end
@@ -509,7 +519,7 @@ module Elasticsearch
 
           {
             results: res.results,
-            languages: res.response["facets"]["languageFacet"]["terms"].map {|f| f["term"] }
+            languages: res.response["facets"]["languageFacet"]["terms"]
           }
         end
       end
