@@ -473,6 +473,13 @@ module Elasticsearch
                 }
               }
             },
+            facets: {
+              languageFacet: {
+                terms: {
+                  field: "language"
+                }
+              }
+            },
             size: per,
             from: per * (page - 1)
           }
@@ -498,7 +505,12 @@ module Elasticsearch
             }
           end
 
-          self.__elasticsearch__.search(query_hash).results
+          res = self.__elasticsearch__.search(query_hash)
+
+          {
+            results: res.results,
+            languages: res.response["facets"]["languageFacet"]["terms"].map {|f| f["term"] }
+          }
         end
       end
     end
