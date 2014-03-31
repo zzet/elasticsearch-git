@@ -19,8 +19,8 @@ module Elasticsearch
           indexes :blob do
             indexes :id,          type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,  index_analyzer: :human_analyzer
             indexes :rid,         type: :string, index: :not_analyzed
-            indexes :oid,         type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
-            indexes :commit_sha,  type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
+            indexes :oid,         type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,   index_analyzer: :code_analyzer
+            indexes :commit_sha,  type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,   index_analyzer: :code_analyzer
             indexes :path,        type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,  index_analyzer: :human_analyzer
             indexes :content,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,   index_analyzer: :code_analyzer
             indexes :language,    type: :string, index: :not_analyzed
@@ -29,7 +29,7 @@ module Elasticsearch
           indexes :commit do
             indexes :id,          type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,  index_analyzer: :human_analyzer
             indexes :rid,         type: :string, index: :not_analyzed
-            indexes :sha,         type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
+            indexes :sha,         type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
 
             indexes :author do
               indexes :name,      type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
@@ -43,7 +43,7 @@ module Elasticsearch
               indexes :time,      type: :date
             end
 
-            indexes :message,    type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,     index_analyzer: :human_analyzer
+            indexes :message,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
           end
         end
 
@@ -459,7 +459,7 @@ module Elasticsearch
                   when :recently_indexed
                     { _timestamp: { order: :desc, mode: :min } }
                   when :last_indexed
-                    { _timestamp: { order: :asc, mode: :min } }
+                    { _timestamp: { order: :asc,  mode: :min } }
                   else
                     {}
                   end
