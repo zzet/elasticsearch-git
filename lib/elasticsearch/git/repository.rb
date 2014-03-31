@@ -15,7 +15,7 @@ module Elasticsearch
         include Elasticsearch::Git::Model
         include Elasticsearch::Git::EncoderHelper
 
-        mapping do
+        mapping _timestamp: { enabled: true } do
           indexes :blob do
             indexes :id,          type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,  index_analyzer: :human_analyzer
             indexes :rid,         type: :string, index: :not_analyzed
@@ -25,20 +25,24 @@ module Elasticsearch
             indexes :content,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,   index_analyzer: :code_analyzer
             indexes :language,    type: :string, index: :not_analyzed
           end
+
           indexes :commit do
             indexes :id,          type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,  index_analyzer: :human_analyzer
             indexes :rid,         type: :string, index: :not_analyzed
             indexes :sha,         type: :string, index_options: 'offsets', search_analyzer: :sha_analyzer,    index_analyzer: :sha_analyzer
+
             indexes :author do
               indexes :name,      type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
               indexes :email,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
               indexes :time,      type: :date
             end
+
             indexes :commiter do
               indexes :name,      type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
               indexes :email,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
               indexes :time,      type: :date
             end
+
             indexes :message,    type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,     index_analyzer: :human_analyzer
           end
         end
@@ -450,6 +454,18 @@ module Elasticsearch
             }
           end
 
+          options[:order] = :default if options[:order].blank?
+          order = case options[:order].to_sym
+                  when :recently_indexed
+                    { _timestamp: { order: :desc, mode: :min } }
+                  when :last_indexed
+                    { _timestamp: { order: :asc, mode: :min } }
+                  else
+                    {}
+                  end
+
+          query_hash[:sort] = order.blank? ? [:_score] : [order, :_score]
+
           if options[:highlight]
             #query_hash[:highlight] = { fields: options[:in].inject({}) { |a, o| a[o.to_sym] = {} } }
           end
@@ -502,6 +518,18 @@ module Elasticsearch
               }
             }
           end
+
+          options[:order] = :default if options[:order].blank?
+          order = case options[:order].to_sym
+                  when :recently_indexed
+                    { _timestamp: { order: :desc, mode: :min } }
+                  when :last_indexed
+                    { _timestamp: { order: :asc, mode: :min } }
+                  else
+                    {}
+                  end
+
+          query_hash[:sort] = order.blank? ? [:_score] : [order, :_score]
 
           if options[:highlight]
             query_hash[:highlight] = {
