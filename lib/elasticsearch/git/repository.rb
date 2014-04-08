@@ -492,7 +492,7 @@ module Elasticsearch
             facets: {
               languageFacet: {
                 terms: {
-                  field: "language",
+                  field: :language,
                   all_term: true
                 }
               }
