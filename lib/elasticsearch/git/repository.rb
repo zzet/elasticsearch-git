@@ -436,6 +436,14 @@ module Elasticsearch
                 },
               },
             },
+            facets: {
+              repositoryFaset: {
+                terms: {
+                  field: :rid,
+                  all_term: true
+                }
+              }
+            },
             size: per,
             from: per * (page - 1)
           }
@@ -473,7 +481,8 @@ module Elasticsearch
           res = self.__elasticsearch__.search(query_hash)
           {
             results: res.results,
-            total_count: res.total_count
+            total_count: res.total_count,
+            repositories: res.response["facets"]["repositoryFaset"]["terms"]
           }
         end
 
