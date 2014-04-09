@@ -437,9 +437,9 @@ module Elasticsearch
               },
             },
             facets: {
-              repositoryFaset: {
+              commitRepositoryFaset: {
                 terms: {
-                  field: :rid,
+                  field: "commit.rid",
                   all_term: true
                 }
               }
@@ -482,7 +482,7 @@ module Elasticsearch
           {
             results: res.results,
             total_count: res.total_count,
-            repositories: res.response["facets"]["repositoryFaset"]["terms"]
+            repositories: res.response["facets"]["commitRepositoryFaset"]["terms"]
           }
         end
 
@@ -509,7 +509,7 @@ module Elasticsearch
                   all_term: true
                 }
               },
-              repositoryFaset: {
+              blobRepositoryFaset: {
                 terms: {
                   field: :rid,
                   all_term: true
@@ -568,7 +568,7 @@ module Elasticsearch
             results: res.results,
             total_count: res.total_count,
             languages: res.response["facets"]["languageFacet"]["terms"],
-            repositories: res.response["facets"]["repositoryFaset"]["terms"]
+            repositories: res.response["facets"]["blobRepositoryFaset"]["terms"]
           }
         end
       end
