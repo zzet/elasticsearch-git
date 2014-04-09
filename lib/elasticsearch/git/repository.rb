@@ -494,6 +494,12 @@ module Elasticsearch
                 terms: {
                   field: :language,
                   all_term: true
+                },
+                repositoryFaset: {
+                  terms: {
+                    field: :rid,
+                    all_term: true
+                  }
                 }
               }
             },
