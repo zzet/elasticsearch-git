@@ -470,7 +470,11 @@ module Elasticsearch
             #query_hash[:highlight] = { fields: options[:in].inject({}) { |a, o| a[o.to_sym] = {} } }
           end
 
-          self.__elasticsearch__.search(query_hash).results
+          res = self.__elasticsearch__.search(query_hash)
+          {
+            results: res.results,
+            total_count: res.total_count
+          }
         end
 
         def search_blob(query, type: :all, page: 1, per: 20, options: {})
@@ -553,6 +557,7 @@ module Elasticsearch
 
           {
             results: res.results,
+            total_count: res.total_count,
             languages: res.response["facets"]["languageFacet"]["terms"]
           }
         end
