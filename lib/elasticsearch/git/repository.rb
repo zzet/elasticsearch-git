@@ -558,7 +558,8 @@ module Elasticsearch
           {
             results: res.results,
             total_count: res.total_count,
-            languages: res.response["facets"]["languageFacet"]["terms"]
+            languages: res.response["facets"]["languageFacet"]["terms"],
+            repositories: res.response["facets"]["repositoryFaset"]["terms"]
           }
         end
       end
