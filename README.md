@@ -1,6 +1,10 @@
 # Elasticsearch::Git
 
-[Elasticsearch](https://github.com/elasticsearch/elasticsearch-rails/tree/master/elasticsearch-model) integrations for git repositories
+[Elasticsearch](https://github.com/elasticsearch/elasticsearch-rails/tree/master/elasticsearch-model) integrations for git repositories.
+
+## NOTE
+
+now indexing text-like documents mo nore 1 mb size
 
 ## Installation
 
