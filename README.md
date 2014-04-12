@@ -4,7 +4,7 @@
 
 ## NOTE
 
-now indexing text-like documents mo nore 1 mb size
+Now indexing text-like documents mo nore 1 mb size
 
 ## Installation
 
