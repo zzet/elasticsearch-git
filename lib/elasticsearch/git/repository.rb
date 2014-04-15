@@ -377,7 +377,7 @@ module Elasticsearch
         end
 
         # For Overwrite
-        def repositories_count
+        def self.repositories_count
           10
         end
 
