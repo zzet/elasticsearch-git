@@ -376,6 +376,11 @@ module Elasticsearch
           @repository_id
         end
 
+        # For Overwrite
+        def repositories_count
+          10
+        end
+
         unless defined?(path_to_repo)
           def path_to_repo
             if @path_to_repo.blank?
@@ -440,7 +445,8 @@ module Elasticsearch
               commitRepositoryFaset: {
                 terms: {
                   field: "commit.rid",
-                  all_term: true
+                  all_term: true,
+                  size: repositories_count
                 }
               }
             },
@@ -496,7 +502,7 @@ module Elasticsearch
                   match: {
                     'blob.content' => {
                       query: "#{query}",
-                      operator: :or
+                      operator: :and
                     }
                   }
                 }
@@ -506,13 +512,15 @@ module Elasticsearch
               languageFacet: {
                 terms: {
                   field: :language,
-                  all_term: true
+                  all_term: true,
+                  size: 20
                 }
               },
               blobRepositoryFaset: {
                 terms: {
                   field: :rid,
-                  all_term: true
+                  all_term: true,
+                  size: repositories_count
                 }
               }
             },
