@@ -230,19 +230,28 @@ module Elasticsearch
               from_rev = repository_for_indexing.merge_base(to_rev, repository_for_indexing.head.target)
             end
 
-            walker = Rugged::Walker.new(repository_for_indexing)
-            walker.push(to_rev)
+            out, err, status = Open3.capture3("git log #{from_rev}...#{to_rev} --format=\"%H\"", chdir: repository_for_indexing.path)
 
-            if from_rev.present? && from_rev != "0000000000000000000000000000000000000000"
-              walker.hide(from_rev)
-            end
+            if status.success? && err.blank?
+              commit_oids = out.split("\n")
+              commits = commit_oids.map {|coid| r.lookup(coid) }
 
-            commits = walker.map { |c| c.oid }
-            walker.reset
+              # walker crashed with seg fault
+              #
+              #walker = Rugged::Walker.new(repository_for_indexing)
+              #walker.push(to_rev)
 
-            commits.each_with_index do |commit, step|
-              index_commit(repository_for_indexing.lookup(commit))
-              ObjectSpace.garbage_collect if step % 100 == 0
+              #if from_rev.present? && from_rev != "0000000000000000000000000000000000000000"
+                #walker.hide(from_rev)
+              #end
+
+              #commits = walker.map { |c| c.oid }
+              #walker.reset
+
+              commits.each_with_index do |commit, step|
+                index_commit(repository_for_indexing.lookup(commit))
+                ObjectSpace.garbage_collect if step % 100 == 0
+              end
             end
           end
         end
