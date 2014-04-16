@@ -234,7 +234,7 @@ module Elasticsearch
 
             if status.success? && err.blank?
               commit_oids = out.split("\n")
-              commits = commit_oids.map {|coid| repository_for_indexing.lookup(coid) }
+              #commits = commit_oids.map {|coid| repository_for_indexing.lookup(coid) }
 
               # walker crashed with seg fault
               #
@@ -248,7 +248,7 @@ module Elasticsearch
               #commits = walker.map { |c| c.oid }
               #walker.reset
 
-              commits.each_with_index do |commit, step|
+              commit_oids.each_with_index do |commit, step|
                 index_commit(repository_for_indexing.lookup(commit))
                 ObjectSpace.garbage_collect if step % 100 == 0
               end
