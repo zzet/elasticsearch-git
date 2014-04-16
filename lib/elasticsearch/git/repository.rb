@@ -234,7 +234,7 @@ module Elasticsearch
 
             if status.success? && err.blank?
               commit_oids = out.split("\n")
-              commits = commit_oids.map {|coid| r.lookup(coid) }
+              commits = commit_oids.map {|coid| repository_for_indexing.lookup(coid) }
 
               # walker crashed with seg fault
               #
