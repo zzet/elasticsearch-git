@@ -12,6 +12,10 @@ Add this line to your application's Gemfile:
 
 ``` ruby
 gem 'elasticsearch-git', '~> 0.0.4'
+
+# or
+
+gem 'elasticsearch-git', github: 'zzet/elasticsearch-git', ref: 'last_ref'
 ```
 
 And then execute:
