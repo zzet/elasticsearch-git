@@ -61,7 +61,7 @@ Repository.search("query")
 
 ## Integration with Gitlab
 
-[Sample](https://github.com/zzet/gitlabhq/tree/master/app/elastic)
+[Sample](https://github.com/zzet/gitlabhq/blob/master/app/elastic/repositories_search.rb)
 
 ``` ruby
 # app/elastic/repositories_search.rb
