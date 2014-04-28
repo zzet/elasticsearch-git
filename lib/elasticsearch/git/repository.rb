@@ -489,10 +489,6 @@ module Elasticsearch
 
           query_hash[:sort] = order.blank? ? [:_score] : [order, :_score]
 
-          if options[:highlight]
-            #query_hash[:highlight] = { fields: options[:in].inject({}) { |a, o| a[o.to_sym] = {} } }
-          end
-
           res = self.__elasticsearch__.search(query_hash)
           {
             results: res.results,
