@@ -454,7 +454,7 @@ module Elasticsearch
               commitRepositoryFaset: {
                 terms: {
                   field: "commit.rid",
-                  all_term: true,
+                  all_terms: true,
                   size: repositories_count
                 }
               }
@@ -517,14 +517,14 @@ module Elasticsearch
               languageFacet: {
                 terms: {
                   field: :language,
-                  all_term: true,
+                  all_terms: true,
                   size: 20
                 }
               },
               blobRepositoryFaset: {
                 terms: {
                   field: :rid,
-                  all_term: true,
+                  all_terms: true,
                   size: repositories_count
                 }
               }
