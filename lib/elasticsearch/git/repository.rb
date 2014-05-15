@@ -584,6 +584,27 @@ module Elasticsearch
             repositories: res.response["facets"]["blobRepositoryFaset"]["terms"]
           }
         end
+
+        def search_file_names(query, page: 1, per: 20, options: {})
+          query_hash = {
+            fields: ['blob.path'],
+            query: {
+              bool: {
+                must: [
+                  {
+                    fuzzy: {
+                      "repository.blob.path" => {value: query}
+                    }
+                  }
+                ]
+              },
+              size: per,
+              from: per * (page - 1)
+            }
+          }
+
+          self.__elasticsearch__.search(query_hash)
+        end
       end
     end
   end
