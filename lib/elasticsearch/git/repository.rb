@@ -454,7 +454,7 @@ module Elasticsearch
               commitRepositoryFaset: {
                 terms: {
                   field: "commit.rid",
-                  all_term: true,
+                  all_terms: true,
                   size: repositories_count
                 }
               }
@@ -517,14 +517,14 @@ module Elasticsearch
               languageFacet: {
                 terms: {
                   field: :language,
-                  all_term: true,
+                  all_terms: true,
                   size: 20
                 }
               },
               blobRepositoryFaset: {
                 terms: {
                   field: :rid,
-                  all_term: true,
+                  all_terms: true,
                   size: repositories_count
                 }
               }
@@ -583,6 +583,27 @@ module Elasticsearch
             languages: res.response["facets"]["languageFacet"]["terms"],
             repositories: res.response["facets"]["blobRepositoryFaset"]["terms"]
           }
+        end
+
+        def search_file_names(query, page: 1, per: 20, options: {})
+          query_hash = {
+            fields: ['blob.path'],
+            query: {
+              bool: {
+                must: [
+                  {
+                    fuzzy: {
+                      "repository.blob.path" => {value: query}
+                    }
+                  }
+                ]
+              },
+              size: per,
+              from: per * (page - 1)
+            }
+          }
+
+          self.__elasticsearch__.search(query_hash)
         end
       end
     end
