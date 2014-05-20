@@ -21,7 +21,7 @@ module Elasticsearch
             indexes :rid,         type: :string, index: :not_analyzed
             indexes :oid,         type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,   index_analyzer: :code_analyzer
             indexes :commit_sha,  type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,   index_analyzer: :code_analyzer
-            indexes :path,        type: :string, index_options: 'offsets', search_analyzer: :human_analyzer,  index_analyzer: :human_analyzer
+            indexes :path,        type: :string, search_analyzer: :path_analyzer,   index_analyzer: :path_analyzer
             indexes :content,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,   index_analyzer: :code_analyzer
             indexes :language,    type: :string, index: :not_analyzed
           end
@@ -598,9 +598,9 @@ module Elasticsearch
                   }
                 ]
               },
-              size: per,
-              from: per * (page - 1)
-            }
+            },
+            size: per,
+            from: per * (page - 1)
           }
 
           self.__elasticsearch__.search(query_hash)

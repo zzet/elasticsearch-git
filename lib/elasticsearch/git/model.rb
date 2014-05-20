@@ -29,6 +29,11 @@ module Elasticsearch
                 tokenizer: 'human_tokenizer',
                 filter: %w(lowercase asciifolding human_ngrams)
               },
+              path_analyzer: {
+                  type: 'custom',
+                  tokenizer: 'path_tokenizer',
+                  filter: %w(lowercase asciifolding path_ngrams)
+              },
               sha_analyzer: {
                 type: 'custom',
                 tokenizer: 'sha_tokenizer',
@@ -52,7 +57,11 @@ module Elasticsearch
                 min_gram: 1,
                 max_gram: 20,
                 token_chars: %w(letter digit)
-              }
+              },
+              path_tokenizer: {
+                  type: 'path_hierarchy',
+                  reverse: true
+              },
             },
             filter: {
               human_ngrams: {
@@ -64,6 +73,11 @@ module Elasticsearch
                 type: "edgeNGram",
                 min_gram: 8,
                 max_gram: 40
+              },
+              path_ngrams: {
+                  type: "edgeNGram",
+                  min_gram: 3,
+                  max_gram: 15
               }
             }
           }
