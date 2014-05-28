@@ -565,8 +565,8 @@ module Elasticsearch
 
           if options[:highlight]
             query_hash[:highlight] = {
-              pre_tags: [""],
-              post_tags: [""],
+              pre_tags: ["gitlabelasticsearch→"],
+              post_tags: ["←gitlabelasticsearch"],
               fields: {
                 "blob.content" => {},
                 "type" => "fvh",
