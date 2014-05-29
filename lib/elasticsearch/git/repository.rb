@@ -587,20 +587,19 @@ module Elasticsearch
 
         def search_file_names(query, page: 1, per: 20, options: {})
           query_hash = {
-            fields: ['blob.path'],
-            query: {
-              bool: {
-                must: [
-                  {
-                    fuzzy: {
-                      "repository.blob.path" => {value: query}
-                    }
-                  }
-                ]
+              fields: ['blob.path'],
+              query: {
+                  fuzzy: {
+                      "repository.blob.path" => { value: query }
+                  },
               },
-            },
-            size: per,
-            from: per * (page - 1)
+              filter: {
+                  term: {
+                      "repository.blob.rid" => [options[:repository_id]].flatten
+                  }
+              },
+              size: per,
+              from: per * (page - 1)
           }
 
           self.__elasticsearch__.search(query_hash)
