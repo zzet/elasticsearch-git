@@ -206,54 +206,35 @@ module Elasticsearch
         #
         # For search from commits use type 'commit'
         def index_commits(from_rev: nil, to_rev: nil)
-          to_rev = repository_for_indexing.head.target unless to_rev.present?
+          # to_rev = repository_for_indexing.head.target unless to_rev.present?
 
-          if to_rev != "0000000000000000000000000000000000000000"
-            # If to_rev correct
-            begin
-              raise unless repository_for_indexing.lookup(to_rev).type == :commit
-            rescue
-              raise ArgumentError, "'to_rev': '#{to_rev}' is a incorrect commit sha."
-            end
+          if from_rev.nil? && to_rev.nil?
+            out, err, status = Open3.capture3("git log --format=\"%H\"", chdir: repository_for_indexing.path)
+          else
+            return 0 if branch_delete?(to_rev)
+            return 0 if !commit_sha?(to_rev)
 
-            begin
-              if from_rev.present? && from_rev != "0000000000000000000000000000000000000000"
-                raise unless repository_for_indexing.lookup(from_rev).type == :commit
-              end
-            rescue
-              raise ArgumentError, "'from_rev': '#{from_rev}' is a incorrect commit sha."
-            end
-
-            # If pushed new branch no need reindex all repository
-            # Find merge_base and reindex diff
-            if from_rev == "0000000000000000000000000000000000000000" && to_rev != repository_for_indexing.head.target
+            if branch_create?(from_rev) && !commit_head?(to_rev)
               from_rev = repository_for_indexing.merge_base(to_rev, repository_for_indexing.head.target)
             end
 
+            return 0 if !commit_sha?(from_rev)
+
             out, err, status = Open3.capture3("git log #{from_rev}...#{to_rev} --format=\"%H\"", chdir: repository_for_indexing.path)
-
-            if status.success? && err.blank?
-              commit_oids = out.split("\n")
-              #commits = commit_oids.map {|coid| repository_for_indexing.lookup(coid) }
-
-              # walker crashed with seg fault
-              #
-              #walker = Rugged::Walker.new(repository_for_indexing)
-              #walker.push(to_rev)
-
-              #if from_rev.present? && from_rev != "0000000000000000000000000000000000000000"
-                #walker.hide(from_rev)
-              #end
-
-              #commits = walker.map { |c| c.oid }
-              #walker.reset
-
-              commit_oids.each_with_index do |commit, step|
-                index_commit(repository_for_indexing.lookup(commit))
-                ObjectSpace.garbage_collect if step % 100 == 0
-              end
-            end
           end
+
+          if status.success? && err.blank?
+            #TODO use rugged walker!!!
+            commit_oids = out.split("\n")
+
+            commit_oids.each_with_index do |commit, step|
+              index_commit(repository_for_indexing.lookup(commit))
+              ObjectSpace.garbage_collect if step % 100 == 0
+            end
+            return commit_oids.count
+          end
+
+          0
         end
 
         def index_commit(commit)
@@ -477,6 +458,19 @@ module Elasticsearch
             }
           end
 
+          if options[:highlight]
+            es_fields = fields.map { |field| field.split('^').first }.inject({}) do |memo, field|
+              memo[field.to_sym] = {}
+              memo
+            end
+
+            query_hash[:highlight] = {
+                pre_tags: ["gitlabelasticsearch→"],
+                post_tags: ["←gitlabelasticsearch"],
+                fields: es_fields
+            }
+          end
+
           options[:order] = :default if options[:order].blank?
           order = case options[:order].to_sym
                   when :recently_indexed
@@ -606,5 +600,24 @@ module Elasticsearch
         end
       end
     end
+
+    private
+
+    def branch_delete?(sha)
+      sha == "0000000000000000000000000000000000000000"
+    end
+
+    def commit_sha?(sha)
+      sha.present? && repository_for_indexing.lookup(sha).type == :commit
+    end
+
+    def commit_head?(sha)
+      sha == repository_for_indexing.head.target
+    end
+
+    def branch_create?(sha)
+      sha == "0000000000000000000000000000000000000000"
+    end
+
   end
 end
