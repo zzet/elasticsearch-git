@@ -411,6 +411,24 @@ module Elasticsearch
         def logger
           @logger ||= Logger.new(STDOUT)
         end
+
+        private
+
+        def branch_delete?(sha)
+          sha == "0000000000000000000000000000000000000000"
+        end
+
+        def branch_create?(sha)
+          sha == "0000000000000000000000000000000000000000"
+        end
+
+        def commit_sha?(sha)
+          sha.present? && repository_for_indexing.lookup(sha).type == :commit
+        end
+
+        def commit_head?(sha)
+          sha == repository_for_indexing.head.target
+        end
       end
 
       module ClassMethods
@@ -600,24 +618,5 @@ module Elasticsearch
         end
       end
     end
-
-    private
-
-    def branch_delete?(sha)
-      sha == "0000000000000000000000000000000000000000"
-    end
-
-    def commit_sha?(sha)
-      sha.present? && repository_for_indexing.lookup(sha).type == :commit
-    end
-
-    def commit_head?(sha)
-      sha == repository_for_indexing.head.target
-    end
-
-    def branch_create?(sha)
-      sha == "0000000000000000000000000000000000000000"
-    end
-
   end
 end
