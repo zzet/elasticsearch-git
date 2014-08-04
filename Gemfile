@@ -5,13 +5,13 @@ gemspec
 
 gem 'elasticsearch-model', github: 'elasticsearch/elasticsearch-rails'
 gem 'elasticsearch-api', git: 'git://github.com/elasticsearch/elasticsearch-ruby.git'
-gem 'rugged', git: 'git://github.com/libgit2/rugged.git', branch: 'development', submodules: true
+gem 'rugged'
 gem 'bundler'
 gem 'rake'
 gem 'pry'
 gem 'charlock_holmes', '~> 0.6.9'
 gem 'gitlab-linguist', '~> 3.0.0'
 gem 'minitest'
-gem 'activesupport', '> 4.0.0'
-gem 'activemodel', '> 4.0.0'
+#gem 'activesupport', '> 4.0.0'
+#gem 'activemodel', '> 4.0.0'
 gem 'wrong'
