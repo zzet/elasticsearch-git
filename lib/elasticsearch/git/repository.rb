@@ -72,7 +72,7 @@ module Elasticsearch
               raise ArgumentError, "'to_rev': '#{to_rev}' is a incorrect commit sha."
             end
           else
-            to_rev = repository_for_indexing.head.target
+            to_rev = repository_for_indexing.head.target.oid
           end
 
           target_sha = to_rev
@@ -206,8 +206,6 @@ module Elasticsearch
         #
         # For search from commits use type 'commit'
         def index_commits(from_rev: nil, to_rev: nil)
-          # to_rev = repository_for_indexing.head.target unless to_rev.present?
-
           if from_rev.nil? && to_rev.nil?
             out, err, status = Open3.capture3("git log --format=\"%H\"", chdir: repository_for_indexing.path)
           else
@@ -504,7 +502,7 @@ module Elasticsearch
           res = self.__elasticsearch__.search(query_hash)
           {
             results: res.results,
-            total_count: res.total_count,
+            total_count: res.size,
             repositories: res.response["facets"]["commitRepositoryFaset"]["terms"]
           }
         end
@@ -591,7 +589,7 @@ module Elasticsearch
 
           {
             results: res.results,
-            total_count: res.total_count,
+            total_count: res.size,
             languages: res.response["facets"]["languageFacet"]["terms"],
             repositories: res.response["facets"]["blobRepositoryFaset"]["terms"]
           }
