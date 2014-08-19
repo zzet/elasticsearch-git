@@ -207,19 +207,23 @@ module Elasticsearch
         # For search from commits use type 'commit'
         def index_commits(from_rev: nil, to_rev: nil)
           if from_rev.nil? && to_rev.nil?
-            out, err, status = Open3.capture3("git log --format=\"%H\"", chdir: repository_for_indexing.path)
+            range = ''
           else
             return 0 if branch_delete?(to_rev)
             return 0 if !commit_sha?(to_rev)
 
-            if branch_create?(from_rev) && !commit_head?(to_rev)
-              from_rev = repository_for_indexing.merge_base(to_rev, repository_for_indexing.head.target)
+            if first_push?(from_rev, to_rev)
+              range = ''
+            elsif branch_create?(from_rev) && !commit_head?(to_rev)
+              from_rev = repository_for_indexing.merge_base(to_rev, repository_for_indexing.head.target.oid)
+              return 0 if !commit_sha?(from_rev)
+              range = "#{from_rev}...#{to_rev}"
+            else
+              range = "#{from_rev}...#{to_rev}"
             end
-
-            return 0 if !commit_sha?(from_rev)
-
-            out, err, status = Open3.capture3("git log #{from_rev}...#{to_rev} --format=\"%H\"", chdir: repository_for_indexing.path)
           end
+
+          out, err, status = Open3.capture3("git log #{range} --format=\"%H\"", chdir: repository_for_indexing.path)
 
           if status.success? && err.blank?
             #TODO use rugged walker!!!
@@ -277,7 +281,7 @@ module Elasticsearch
         def index_blobs_array
           result = []
 
-          target_sha = repository_for_indexing.head.target
+          target_sha = repository_for_indexing.head.target.oid
 
           if repository_for_indexing.bare?
             tree = repository_for_indexing.lookup(target_sha).tree
@@ -310,11 +314,11 @@ module Elasticsearch
             result.push(
               {
                 type: 'blob',
-                id: "#{repository_for_indexing.head.target}_#{path}#{blob[:name]}",
+                id: "#{repository_for_indexing.head.target.oid}_#{path}#{blob[:name]}",
                 rid: repository_id,
                 oid: b.id,
                 content: b.data,
-                commit_sha: repository_for_indexing.head.target
+                commit_sha: repository_for_indexing.head.target.oid
               }
             ) if b.text?
           end
@@ -412,6 +416,10 @@ module Elasticsearch
 
         private
 
+        def first_push?(from, to)
+          branch_create?(from) && commit_head?(to)
+        end
+
         def branch_delete?(sha)
           sha == "0000000000000000000000000000000000000000"
         end
@@ -425,7 +433,7 @@ module Elasticsearch
         end
 
         def commit_head?(sha)
-          sha == repository_for_indexing.head.target
+          sha == repository_for_indexing.head.target.oid
         end
       end
 
