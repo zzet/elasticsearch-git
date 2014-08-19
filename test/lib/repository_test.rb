@@ -20,8 +20,19 @@ class RepositoryTest < TestCase
     assert { commit_count == RepoInfo::COMMIT_COUNT }
   end
 
+  #TODO write better assertions
   def test_index_all_blobs_from_head
     blob_count = @repository.index_blobs
+    result = @repository.search('def project_name_regex')
+    assert { result[:blobs][:total_count]  == 1 }
+  end
+
+  #TODO write better assertions
+  def test_index_blobs_after_first_push
+    commit_count = @repository.index_blobs(
+        from_rev: "0000000000000000000000000000000000000000",
+        to_rev: @repository.repository_for_indexing.head.target.oid)
+
     result = @repository.search('def project_name_regex')
     assert { result[:blobs][:total_count]  == 1 }
   end

@@ -79,9 +79,10 @@ module Elasticsearch
 
           if from_rev.present?
             begin
-              if from_rev != "0000000000000000000000000000000000000000"
-                raise unless repository_for_indexing.lookup(from_rev).type == :commit
+              if from_rev == "0000000000000000000000000000000000000000"
+                from_rev = merge_base(to_rev)
               end
+              raise unless repository_for_indexing.lookup(from_rev).type == :commit
             rescue
               raise ArgumentError, "'from_rev': '#{from_rev}' is a incorrect commit sha."
             end
@@ -215,7 +216,8 @@ module Elasticsearch
             if first_push?(from_rev, to_rev)
               range = ''
             elsif branch_create?(from_rev) && !commit_head?(to_rev)
-              from_rev = repository_for_indexing.merge_base(to_rev, repository_for_indexing.head.target.oid)
+              from_rev = merge_base(to_rev)
+
               return 0 if !commit_sha?(from_rev)
               range = "#{from_rev}...#{to_rev}"
             else
@@ -415,6 +417,11 @@ module Elasticsearch
         end
 
         private
+
+        def merge_base(to_rev)
+          head_sha = repository_for_indexing.head.target.oid
+          repository_for_indexing.merge_base(to_rev, head_sha)
+        end
 
         def first_push?(from, to)
           branch_create?(from) && commit_head?(to)
