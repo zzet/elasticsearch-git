@@ -14,7 +14,7 @@ module Elasticsearch
 
         blob  = repo.lookup(@id)
 
-        @mode = '%06o' % raw_blob_hash[:filemode]
+        @mode = raw_blob_hash[:mode].to_s(8)
         @size = blob.size
         @path = encode!(raw_blob_hash[:path])
         @name = @path.split('/').last

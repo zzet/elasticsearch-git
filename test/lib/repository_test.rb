@@ -5,6 +5,7 @@ class RepositoryTest < TestCase
   def setup
     @repository = Repository.new
     @repository.repository_for_indexing(TEST_REPO_PATH)
+    Repository.__elasticsearch__.create_index! force: true
   end
 
   def test_index_commits
@@ -23,6 +24,8 @@ class RepositoryTest < TestCase
   #TODO write better assertions
   def test_index_all_blobs_from_head
     blob_count = @repository.index_blobs
+    Repository.__elasticsearch__.refresh_index!
+
     result = @repository.search('def project_name_regex')
     assert { result[:blobs][:total_count]  == 1 }
   end
@@ -32,6 +35,7 @@ class RepositoryTest < TestCase
     commit_count = @repository.index_blobs(
         from_rev: "0000000000000000000000000000000000000000",
         to_rev: @repository.repository_for_indexing.head.target.oid)
+    Repository.__elasticsearch__.refresh_index!
 
     result = @repository.search('def project_name_regex')
     assert { result[:blobs][:total_count]  == 1 }
