@@ -34,13 +34,13 @@ module Elasticsearch
             indexes :author do
               indexes :name,      type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
               indexes :email,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
-              indexes :time,      type: :date
+              indexes :time,      type: :time
             end
 
             indexes :commiter do
               indexes :name,      type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
               indexes :email,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
-              indexes :time,      type: :date
+              indexes :time,      type: :time
             end
 
             indexes :message,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
@@ -61,73 +61,24 @@ module Elasticsearch
         # }
         #
         # For search from blobs use type 'blob'
-        def index_blobs(from_rev: nil, to_rev: nil)
+        def index_blobs(from_rev: nil, to_rev: repository_for_indexing.last_commit.oid)
+          from, to = parse_revs(from_rev, to_rev)
 
-          if to_rev.present?
-            begin
-              if to_rev != "0000000000000000000000000000000000000000"
-                raise unless repository_for_indexing.lookup(to_rev).type == :commit
-              end
-            rescue
-              raise ArgumentError, "'to_rev': '#{to_rev}' is a incorrect commit sha."
-            end
-          else
-            to_rev = repository_for_indexing.head.target.oid
-          end
+          diff = repository_for_indexing.diff(from, to)
 
-          target_sha = to_rev
-
-          if from_rev.present?
-            begin
-              if from_rev != "0000000000000000000000000000000000000000"
-                raise unless repository_for_indexing.lookup(from_rev).type == :commit
-              end
-            rescue
-              raise ArgumentError, "'from_rev': '#{from_rev}' is a incorrect commit sha."
-            end
-
-            diff = repository_for_indexing.diff(from_rev, to_rev)
-
-            diff.deltas.reverse.each_with_index do |delta, step|
-              if delta.status == :deleted
-                b = LiteBlob.new(repository_for_indexing, delta.old_file)
-                delete_from_index_blob(b)
-              else
-                b = LiteBlob.new(repository_for_indexing, delta.new_file)
-                index_blob(b, target_sha)
-              end
-
-              # Run GC every 100 blobs
-              ObjectSpace.garbage_collect if step % 100 == 0
-            end
-          else
-            if repository_for_indexing.bare?
-              recurse_blobs_index(repository_for_indexing.lookup(target_sha).tree, target_sha)
+          diff.deltas.reverse.each_with_index do |delta, step|
+            if delta.status == :deleted
+              next if delta.old_file[:mode].to_s(8) == "160000"
+              b = LiteBlob.new(repository_for_indexing, delta.old_file)
+              delete_from_index_blob(b)
             else
-              repository_for_indexing.index.each_with_index do |blob, step|
-                b = LiteBlob.new(repository_for_indexing, blob)
-                index_blob(b, target_sha)
-
-                # Run GC every 100 blobs
-                ObjectSpace.garbage_collect if step % 100 == 0
-              end
+              next if delta.new_file[:mode].to_s(8) == "160000"
+              b = LiteBlob.new(repository_for_indexing, delta.new_file)
+              index_blob(b, to)
             end
-          end
-        end
 
-        # Indexing bare repository via walking through tree
-        def recurse_blobs_index(tree, target_sha, path = "")
-          tree.each_blob do |blob|
-            blob[:path] = path + blob[:name]
-            b = LiteBlob.new(repository_for_indexing, blob)
-            index_blob(b, target_sha)
-          end
-
-          # Run GC every recurse step
-          ObjectSpace.garbage_collect
-
-          tree.each_tree do |nested_tree|
-            recurse_blobs_index(repository_for_indexing.lookup(nested_tree[:oid]), target_sha, "#{path}#{nested_tree[:name]}/")
+            # Run GC every 100 blobs
+            ObjectSpace.garbage_collect if step % 100 == 0
           end
         end
 
@@ -205,21 +156,10 @@ module Elasticsearch
         # }
         #
         # For search from commits use type 'commit'
-        def index_commits(from_rev: nil, to_rev: nil)
-          if from_rev.nil? && to_rev.nil?
-            out, err, status = Open3.capture3("git log --format=\"%H\"", chdir: repository_for_indexing.path)
-          else
-            return 0 if branch_delete?(to_rev)
-            return 0 if !commit_sha?(to_rev)
-
-            if branch_create?(from_rev) && !commit_head?(to_rev)
-              from_rev = repository_for_indexing.merge_base(to_rev, repository_for_indexing.head.target)
-            end
-
-            return 0 if !commit_sha?(from_rev)
-
-            out, err, status = Open3.capture3("git log #{from_rev}...#{to_rev} --format=\"%H\"", chdir: repository_for_indexing.path)
-          end
+        def index_commits(from_rev: nil, to_rev: repository_for_indexing.last_commit.oid)
+          from, to = parse_revs(from_rev, to_rev)
+          range = [from, to].reject(&:nil?).join('..')
+          out, err, status = Open3.capture3("git log #{range} --format=\"%H\"", chdir: repository_for_indexing.path)
 
           if status.success? && err.blank?
             #TODO use rugged walker!!!
@@ -264,6 +204,24 @@ module Elasticsearch
           end
         end
 
+        def parse_revs(from_rev, to_rev)
+          from = if index_new_branch?(from_rev)
+                   if to_rev == repository_for_indexing.last_commit.oid
+                     nil
+                   else
+                     merge_base(to_rev)
+                   end
+                 else
+                   from_rev
+                 end
+
+          return from, to_rev
+        end
+
+        def index_new_branch?(from)
+          from == '0000000000000000000000000000000000000000'
+        end
+
         # Representation of repository as indexed json
         # Attention: It can be very very very huge hash
         def as_indexed_json(options = {})
@@ -277,7 +235,7 @@ module Elasticsearch
         def index_blobs_array
           result = []
 
-          target_sha = repository_for_indexing.head.target
+          target_sha = repository_for_indexing.head.target.oid
 
           if repository_for_indexing.bare?
             tree = repository_for_indexing.lookup(target_sha).tree
@@ -310,11 +268,11 @@ module Elasticsearch
             result.push(
               {
                 type: 'blob',
-                id: "#{repository_for_indexing.head.target}_#{path}#{blob[:name]}",
+                id: "#{repository_for_indexing.head.target.oid}_#{path}#{blob[:name]}",
                 rid: repository_id,
                 oid: b.id,
                 content: b.data,
-                commit_sha: repository_for_indexing.head.target
+                commit_sha: repository_for_indexing.head.target.oid
               }
             ) if b.text?
           end
@@ -412,20 +370,9 @@ module Elasticsearch
 
         private
 
-        def branch_delete?(sha)
-          sha == "0000000000000000000000000000000000000000"
-        end
-
-        def branch_create?(sha)
-          sha == "0000000000000000000000000000000000000000"
-        end
-
-        def commit_sha?(sha)
-          sha.present? && repository_for_indexing.lookup(sha).type == :commit
-        end
-
-        def commit_head?(sha)
-          sha == repository_for_indexing.head.target
+        def merge_base(to_rev)
+          head_sha = repository_for_indexing.last_commit.oid
+          repository_for_indexing.merge_base(to_rev, head_sha)
         end
       end
 
