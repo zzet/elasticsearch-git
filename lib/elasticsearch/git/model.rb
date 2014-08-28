@@ -30,9 +30,9 @@ module Elasticsearch
                 filter: %w(lowercase asciifolding human_ngrams)
               },
               path_analyzer: {
-                  type: 'custom',
-                  tokenizer: 'path_tokenizer',
-                  filter: %w(lowercase asciifolding path_ngrams)
+                type: 'custom',
+                tokenizer: 'path_tokenizer',
+                filter: %w(lowercase asciifolding path_ngrams)
               },
               sha_analyzer: {
                 type: 'custom',
@@ -42,7 +42,7 @@ module Elasticsearch
               code_analyzer: {
                 type: 'custom',
                 tokenizer: 'standard',
-                filter: %w(lowercase asciifolding)
+                filter: %w(lowercase asciifolding code_stemmer)
               }
             },
             tokenizer: {
@@ -59,8 +59,8 @@ module Elasticsearch
                 token_chars: %w(letter digit)
               },
               path_tokenizer: {
-                  type: 'path_hierarchy',
-                  reverse: true
+                type: 'path_hierarchy',
+                reverse: true
               },
             },
             filter: {
@@ -75,9 +75,13 @@ module Elasticsearch
                 max_gram: 40
               },
               path_ngrams: {
-                  type: "edgeNGram",
-                  min_gram: 3,
-                  max_gram: 15
+                type: "edgeNGram",
+                min_gram: 3,
+                max_gram: 15
+              },
+              code_stemmer: {
+                type: "stemmer",
+                name: "minimal_english"
               }
             }
           }
