@@ -1,0 +1,387 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Elasticsearch-git by zzet</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">Elasticsearch-git</h1>
+        <p class="header">Elasticsearch integrations for git repositories. Provide index repository and full-text search code or commits in repository.</p>
+
+        <ul>
+          <li class="download"><a class="buttons" href="https://github.com/zzet/elasticsearch-git/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/zzet/elasticsearch-git/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/zzet/elasticsearch-git">View On GitHub</a></li>
+        </ul>
+
+        <p class="header">This project is maintained by <a class="header name" href="https://github.com/zzet">zzet</a></p>
+
+
+      </header>
+      <section>
+        <h1>
+<a name="elasticsearchgit" class="anchor" href="#elasticsearchgit"><span class="octicon octicon-link"></span></a>Elasticsearch::Git</h1>
+
+<p><a href="https://github.com/elasticsearch/elasticsearch-rails/tree/master/elasticsearch-model">Elasticsearch</a> integrations for git repositories.</p>
+
+<h2>
+<a name="note" class="anchor" href="#note"><span class="octicon octicon-link"></span></a>NOTE</h2>
+
+<p>Now indexing text-like documents mo nore 1 mb size</p>
+
+<h2>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Add this line to your application's Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s1">'elasticsearch-git'</span><span class="p">,</span> <span class="s1">'~&gt; 0.0.4'</span>
+
+<span class="c1"># or</span>
+
+<span class="n">gem</span> <span class="s1">'elasticsearch-git'</span><span class="p">,</span> <span class="ss">github</span><span class="p">:</span> <span class="s1">'zzet/elasticsearch-git'</span><span class="p">,</span> <span class="ss">ref</span><span class="p">:</span> <span class="s1">'last_ref'</span>
+</pre></div>
+
+<p>And then execute:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>bundle
+</pre></div>
+
+<p>Or install it yourself as:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>gem install elasticsearch-git
+</pre></div>
+
+<h2>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Repository</span>
+  <span class="kp">include</span> <span class="no">Elasticsearch</span><span class="o">::</span><span class="no">Git</span><span class="o">::</span><span class="no">Repository</span>
+
+  <span class="k">def</span> <span class="nf">repository_id</span>
+    <span class="n">project</span><span class="o">.</span><span class="n">id</span>
+  <span class="k">end</span>
+
+  <span class="n">repository_for_indexing</span> <span class="s1">'/path/to/your/repo'</span>
+<span class="k">end</span>
+
+<span class="no">Repository</span><span class="o">.</span><span class="n">__elasticsearch__</span><span class="o">.</span><span class="n">create_index!</span> <span class="ss">force</span><span class="p">:</span> <span class="kp">true</span>
+
+<span class="n">repo</span> <span class="o">=</span> <span class="no">Repository</span><span class="o">.</span><span class="n">new</span>
+<span class="n">repo</span><span class="o">.</span><span class="n">index_commits</span>
+<span class="n">repo</span><span class="o">.</span><span class="n">index_blobs</span>
+
+<span class="n">repo</span><span class="o">.</span><span class="n">index_commits</span><span class="p">(</span><span class="ss">from_rev</span><span class="p">:</span> <span class="s2">"1802bafa70d3b1678cfa46a482fd396dd8a4bd40"</span><span class="p">,</span> <span class="ss">to_rev</span><span class="p">:</span> <span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">)</span>
+<span class="n">repo</span><span class="o">.</span><span class="n">index_blobs</span><span class="p">(</span><span class="ss">from_rev</span><span class="p">:</span> <span class="s2">"1802bafa70d3b1678cfa46a482fd396dd8a4bd40"</span><span class="p">,</span> <span class="ss">to_rev</span><span class="p">:</span> <span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">)</span>
+
+<span class="no">Repository</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">"query"</span><span class="p">,</span> <span class="ss">type</span><span class="p">:</span> <span class="s1">'blob'</span><span class="p">)</span>
+<span class="no">Repository</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">"query"</span><span class="p">,</span> <span class="ss">type</span><span class="p">:</span> <span class="s1">'commit'</span><span class="p">)</span>
+
+<span class="c1"># Search in all types</span>
+<span class="no">Repository</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">"query"</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="integration-with-gitlab" class="anchor" href="#integration-with-gitlab"><span class="octicon octicon-link"></span></a>Integration with Gitlab</h2>
+
+<p><a href="https://github.com/zzet/gitlabhq/blob/master/app/elastic/repositories_search.rb">Sample (In Undev Gitlab fork)</a></p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/elastic/repositories_search.rb</span>
+<span class="k">module</span> <span class="nn">RepositoriesSearch</span>
+  <span class="kp">extend</span> <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">Concern</span>
+
+  <span class="n">included</span> <span class="k">do</span>
+    <span class="kp">include</span> <span class="no">Elasticsearch</span><span class="o">::</span><span class="no">Git</span><span class="o">::</span><span class="no">Repository</span>
+
+    <span class="nb">self</span><span class="o">.</span><span class="n">__elasticsearch__</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="no">Elasticsearch</span><span class="o">::</span><span class="no">Client</span><span class="o">.</span><span class="n">new</span> <span class="ss">host</span><span class="p">:</span> <span class="no">Gitlab</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">elasticsearch</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="ss">port</span><span class="p">:</span> <span class="no">Gitlab</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">elasticsearch</span><span class="o">.</span><span class="n">port</span>
+
+    <span class="k">def</span> <span class="nf">repository_id</span>
+      <span class="n">project</span><span class="o">.</span><span class="n">id</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="k">module</span> <span class="nn">ClassMethods</span>
+    <span class="k">def</span> <span class="nf">import</span>
+      <span class="no">Repository</span><span class="o">.</span><span class="n">__elasticsearch__</span><span class="o">.</span><span class="n">create_index!</span> <span class="ss">force</span><span class="p">:</span> <span class="kp">true</span>
+
+      <span class="no">Project</span><span class="o">.</span><span class="n">find_each</span> <span class="k">do</span> <span class="o">|</span><span class="n">project</span><span class="o">|</span>
+        <span class="k">if</span> <span class="n">project</span><span class="o">.</span><span class="n">repository</span><span class="o">.</span><span class="n">exists?</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">project</span><span class="o">.</span><span class="n">repository</span><span class="o">.</span><span class="n">empty?</span>
+          <span class="n">project</span><span class="o">.</span><span class="n">repository</span><span class="o">.</span><span class="n">index_commits</span>
+          <span class="n">project</span><span class="o">.</span><span class="n">repository</span><span class="o">.</span><span class="n">index_blobs</span>
+        <span class="k">end</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># app/models/repository.rb</span>
+<span class="k">class</span> <span class="nc">Repository</span>
+  <span class="kp">include</span> <span class="no">RepositoriesSearch</span>
+  <span class="c1">#...</span>
+  <span class="k">def</span> <span class="nf">project</span>
+    <span class="vi">@project</span> <span class="o">||=</span> <span class="no">Project</span><span class="o">.</span><span class="n">find_with_namespace</span><span class="p">(</span><span class="vi">@path_with_namespace</span><span class="p">)</span>
+  <span class="k">end</span>
+  <span class="c1">#...</span>
+<span class="k">end</span>
+
+<span class="no">Repository</span><span class="o">.</span><span class="n">import</span> <span class="c1"># for indexing all repositories</span>
+
+<span class="no">Repository</span><span class="o">.</span><span class="n">__elasticsearch__</span><span class="o">.</span><span class="n">create_index!</span> <span class="ss">force</span><span class="p">:</span> <span class="kp">true</span>
+<span class="no">Project</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">repository</span><span class="o">.</span><span class="n">index_commits</span>
+<span class="no">Project</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">repository</span><span class="o">.</span><span class="n">index_blobs</span>
+
+<span class="no">Repository</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">"some_query"</span><span class="p">)</span>
+<span class="c1"># =&gt; {blobs: [{}, {}, {}], commits: [{}, {}, {}]}</span>
+
+<span class="no">Repository</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">"some_query"</span><span class="p">,</span> <span class="ss">type</span><span class="p">:</span> <span class="ss">:blob</span><span class="p">)</span>
+<span class="c1"># =&gt; {blobs: [{}, {}, {}], commits: []}</span>
+
+<span class="no">Repository</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">"some_query"</span><span class="p">,</span> <span class="ss">type</span><span class="p">:</span> <span class="ss">:commit</span><span class="p">)</span>
+<span class="c1"># =&gt; {blobs: [], commits: [{}, {}, {}]}</span>
+
+<span class="no">Repository</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">"some_query"</span><span class="p">,</span> <span class="ss">type</span><span class="p">:</span> <span class="ss">:commit</span><span class="p">,</span> <span class="ss">page</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="ss">per</span><span class="p">:</span> <span class="mi">50</span><span class="p">)</span>
+<span class="c1"># =&gt; ...</span>
+
+<span class="no">Repository</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">"some_query"</span><span class="p">,</span> <span class="ss">options</span><span class="p">:</span> <span class="p">{</span> <span class="ss">repository_id</span><span class="p">:</span> <span class="no">Project</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">id</span> <span class="p">})</span>
+<span class="c1"># =&gt; {blobs: [{}, {}, {}], commits: [{}, {}, {}]}</span>
+
+<span class="no">Repository</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">"some_query"</span><span class="p">,</span> <span class="ss">options</span><span class="p">:</span> <span class="p">{</span> <span class="ss">repository_id</span><span class="p">:</span> <span class="n">current_user</span><span class="o">.</span><span class="n">authorized_projects</span><span class="o">.</span><span class="n">ids</span> <span class="p">})</span>
+<span class="c1"># =&gt; {blobs: [{}, {}, {}], commits: [{}, {}, {}]}</span>
+
+<span class="no">Project</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">repository</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">"Copyright"</span><span class="p">)</span><span class="o">[</span><span class="ss">:blobs</span><span class="o">].</span><span class="n">first</span>
+<span class="o">=&gt;</span> <span class="c1">#&lt;Elasticsearch::Model::Response::Result:0xbb84b3fc</span>
+ <span class="vi">@result</span><span class="o">=</span>
+  <span class="p">{</span><span class="s2">"_index"</span><span class="o">=&gt;</span><span class="s2">"repository-index-development"</span><span class="p">,</span>
+   <span class="s2">"_type"</span><span class="o">=&gt;</span><span class="s2">"repository"</span><span class="p">,</span>
+   <span class="s2">"_id"</span><span class="o">=&gt;</span><span class="s2">"4328_LICENSE.txt"</span><span class="p">,</span>
+   <span class="s2">"_score"</span><span class="o">=&gt;</span><span class="mi">0</span><span class="o">.</span><span class="mo">034</span><span class="mi">848917</span><span class="p">,</span>
+   <span class="s2">"_source"</span><span class="o">=&gt;</span>
+    <span class="p">{</span><span class="s2">"blob"</span><span class="o">=&gt;</span>
+      <span class="p">{</span><span class="s2">"type"</span><span class="o">=&gt;</span><span class="s2">"blob"</span><span class="p">,</span>
+       <span class="s2">"oid"</span><span class="o">=&gt;</span><span class="s2">"f99909cd4ecb6f2ad08f8e55aac3a9fcd86a2bd2"</span><span class="p">,</span>
+       <span class="s2">"rid"</span><span class="o">=&gt;</span><span class="mi">4328</span><span class="p">,</span>
+       <span class="s2">"content"</span><span class="o">=&gt;</span>
+        <span class="s2">"Copyright (c) 2014 Andrey Kumanyaev</span><span class="se">\n\n</span><span class="s2">MIT</span>
+<span class="s2">License</span><span class="se">\n\n</span><span class="s2">Permission is hereby granted, free of charge, to any person</span>
+<span class="s2">obtaining</span><span class="se">\n</span><span class="s2">a copy of this software and associated documentation files</span>
+<span class="s2">(the</span><span class="se">\n\"</span><span class="s2">Software</span><span class="se">\"</span><span class="s2">), to deal in the Software without restriction,</span>
+<span class="s2">including</span><span class="se">\n</span><span class="s2">without limitation the rights to use, copy, modify, merge,</span>
+<span class="s2">publish,</span><span class="se">\n</span><span class="s2">distribute, sublicense, and/or sell copies of the Software,</span>
+<span class="s2">and to</span><span class="se">\n</span><span class="s2">permit persons to whom the Software is furnished to do so,</span>
+<span class="s2">subject to</span><span class="se">\n</span><span class="s2">the following conditions:</span><span class="se">\n\n</span><span class="s2">The above copyright notice and</span>
+<span class="s2">this permission notice shall be</span><span class="se">\n</span><span class="s2">included in all copies or substantial</span>
+<span class="s2">portions of the Software.</span><span class="se">\n\n</span><span class="s2">THE SOFTWARE IS PROVIDED </span><span class="se">\"</span><span class="s2">AS IS</span><span class="se">\"</span><span class="s2">, WITHOUT</span>
+<span class="s2">WARRANTY OF ANY KIND,</span><span class="se">\n</span><span class="s2">EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO</span>
+<span class="s2">THE WARRANTIES OF</span><span class="se">\n</span><span class="s2">MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE</span>
+<span class="s2">AND</span><span class="se">\n</span><span class="s2">NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS</span>
+<span class="s2">BE</span><span class="se">\n</span><span class="s2">LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN</span>
+<span class="s2">ACTION</span><span class="se">\n</span><span class="s2">OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN</span>
+<span class="s2">CONNECTION</span><span class="se">\n</span><span class="s2">WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE</span>
+<span class="s2">SOFTWARE.</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+       <span class="s2">"commit_sha"</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">}}}</span><span class="o">&gt;</span>
+</pre></div>
+
+<h2>
+<a name="examples" class="anchor" href="#examples"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<p>After integration this gem into <a href="https://github.com/gitlabhq/gitlabhq">Gitlab</a></p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Repository</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">"too"</span><span class="p">)</span><span class="o">[</span><span class="ss">:commits</span><span class="o">].</span><span class="n">first</span>
+<span class="o">=&gt;</span> <span class="c1">#&lt;Elasticsearch::Model::Response::Result:0xbb50dfdc</span>
+ <span class="vi">@result</span><span class="o">=</span>
+  <span class="p">{</span><span class="s2">"_index"</span><span class="o">=&gt;</span><span class="s2">"repository-index-development"</span><span class="p">,</span>
+   <span class="s2">"_type"</span><span class="o">=&gt;</span><span class="s2">"repository"</span><span class="p">,</span>
+   <span class="s2">"_id"</span><span class="o">=&gt;</span><span class="s2">"4328_1802bafa70d3b1678cfa46a482fd396dd8a4bd40"</span><span class="p">,</span>
+   <span class="s2">"_score"</span><span class="o">=&gt;</span><span class="mi">0</span><span class="o">.</span><span class="mi">15873253</span><span class="p">,</span>
+   <span class="s2">"_source"</span><span class="o">=&gt;</span>
+    <span class="p">{</span><span class="s2">"commit"</span><span class="o">=&gt;</span>
+      <span class="p">{</span><span class="s2">"type"</span><span class="o">=&gt;</span><span class="s2">"commit"</span><span class="p">,</span>
+       <span class="s2">"rid"</span><span class="o">=&gt;</span><span class="mi">4328</span><span class="p">,</span>
+       <span class="s2">"sha"</span><span class="o">=&gt;</span><span class="s2">"1802bafa70d3b1678cfa46a482fd396dd8a4bd40"</span><span class="p">,</span>
+       <span class="s2">"author"</span><span class="o">=&gt;</span>
+        <span class="p">{</span><span class="s2">"name"</span><span class="o">=&gt;</span><span class="s2">"Andrey Kumanyaev"</span><span class="p">,</span>
+         <span class="s2">"email"</span><span class="o">=&gt;</span><span class="s2">"me@zzet.org"</span><span class="p">,</span>
+         <span class="s2">"time"</span><span class="o">=&gt;</span><span class="s2">"2014-02-16T02:24:23+04:00"</span><span class="p">},</span>
+       <span class="s2">"committer"</span><span class="o">=&gt;</span>
+        <span class="p">{</span><span class="s2">"name"</span><span class="o">=&gt;</span><span class="s2">"Andrey Kumanyaev"</span><span class="p">,</span>
+         <span class="s2">"email"</span><span class="o">=&gt;</span><span class="s2">"me@zzet.org"</span><span class="p">,</span>
+         <span class="s2">"time"</span><span class="o">=&gt;</span><span class="s2">"2014-02-16T02:24:23+04:00"</span><span class="p">},</span>
+       <span class="s2">"message"</span><span class="o">=&gt;</span><span class="s2">"Save 2. Indexing work. Search too</span><span class="se">\n</span><span class="s2">"</span><span class="p">}}}</span><span class="o">&gt;</span>
+
+
+<span class="no">Project</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">repository</span><span class="o">.</span><span class="n">as_indexed_json</span>
+  <span class="no">Project</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">1</span><span class="o">.</span><span class="mi">7</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">"projects"</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">"projects"</span> <span class="no">ORDER</span> <span class="no">BY</span> <span class="s2">"projects"</span><span class="o">.</span><span class="s2">"id"</span> <span class="no">DESC</span> <span class="no">LIMIT</span> <span class="mi">1</span>
+  <span class="no">Namespace</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">4</span><span class="o">.</span><span class="mi">8</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">"namespaces"</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">"namespaces"</span> <span class="no">WHERE</span> <span class="s2">"namespaces"</span><span class="o">.</span><span class="s2">"id"</span> <span class="o">=</span> <span class="vg">$1</span> <span class="no">ORDER</span> <span class="no">BY</span> <span class="s2">"namespaces"</span><span class="o">.</span><span class="s2">"id"</span> <span class="no">ASC</span> <span class="no">LIMIT</span> <span class="mi">1</span>  <span class="o">[[</span><span class="s2">"id"</span><span class="p">,</span> <span class="mi">3739</span><span class="o">]]</span>
+  <span class="no">Namespace</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">9</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">"namespaces"</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">"namespaces"</span> <span class="no">WHERE</span> <span class="s2">"namespaces"</span><span class="o">.</span><span class="s2">"path"</span> <span class="o">=</span> <span class="s1">'zzet'</span> <span class="no">LIMIT</span> <span class="mi">1</span>
+  <span class="no">Project</span> <span class="no">Load</span> <span class="p">(</span><span class="mi">0</span><span class="o">.</span><span class="mi">7</span><span class="n">ms</span><span class="p">)</span>  <span class="no">SELECT</span> <span class="s2">"projects"</span><span class="o">.</span><span class="n">*</span> <span class="no">FROM</span> <span class="s2">"projects"</span> <span class="no">WHERE</span> <span class="s2">"projects"</span><span class="o">.</span><span class="s2">"namespace_id"</span> <span class="o">=</span> <span class="mi">3739</span> <span class="no">AND</span> <span class="s2">"projects"</span><span class="o">.</span><span class="s2">"path"</span> <span class="o">=</span> <span class="s1">'elasticsearch-git'</span> <span class="no">LIMIT</span> <span class="mi">1</span>
+<span class="c1"># Long lines are stripped manually</span>
+<span class="o">=&gt;</span> <span class="p">{</span><span class="ss">:blobs</span><span class="o">=&gt;</span>
+  <span class="o">[[</span><span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"blob"</span><span class="p">,</span>
+     <span class="ss">:id</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28_.gitignore"</span><span class="p">,</span>
+     <span class="ss">:rid</span><span class="o">=&gt;</span><span class="mi">4328</span><span class="p">,</span>
+     <span class="ss">:oid</span><span class="o">=&gt;</span><span class="s2">"d87d4be66f458acd52878902bbf1391732ad21e1"</span><span class="p">,</span>
+     <span class="ss">:content</span><span class="o">=&gt;</span>
+      <span class="s2">"*.gem</span><span class="se">\n</span><span class="s2">*.rbc</span><span class="se">\n</span><span class="s2">.bundle</span><span class="se">\n</span><span class="s2">.config</span><span class="se">\n</span><span class="s2">.yardoc</span><span class="se">\n</span><span class="s2">Gemfile.lock</span><span class="se">\n</span><span class="s2">InstalledFiles</span><span class="se">\n</span><span class="s2">_yardoc</span><span class="se">\n</span><span class="s2">coverage</span><span class="se">\n</span><span class="s2">doc/</span><span class="se">\n</span><span class="s2">lib/bundler/man</span><span class="se">\n</span><span class="s2">pkg</span><span class="se">\n</span><span class="s2">rdoc</span><span class="se">\n</span><span class="s2">spec/reports</span><span class="se">\n</span><span class="s2">test/tmp</span><span class="se">\n</span><span class="s2">test/version_tmp</span><span class="se">\n</span><span class="s2">tmp</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+     <span class="ss">:commit_sha</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">},</span>
+    <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"blob"</span><span class="p">,</span>
+     <span class="ss">:id</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28_Gemfile"</span><span class="p">,</span>
+     <span class="ss">:rid</span><span class="o">=&gt;</span><span class="mi">4328</span><span class="p">,</span>
+     <span class="ss">:oid</span><span class="o">=&gt;</span><span class="s2">"7322405f8f3ee5de24f7a727940ac52543e8954c"</span><span class="p">,</span>
+     <span class="ss">:content</span><span class="o">=&gt;</span>
+      <span class="s2">"source 'https://rubygems.org'</span><span class="se">\n\n</span><span class="s2"># Specify your gem's dependencies in elasticsearch-git.gemspec</span><span class="se">\n</span><span class="s2">gemspec</span><span class="se">\n\n</span><span class="s2">gem 'elasticsearch-model', github: 'elasticsearch/elasticsearch-rails'</span><span class="se">\n</span><span class="s2">gem 'elasticsearc....."</span>
+     <span class="ss">:commit_sha</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">},</span>
+    <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"blob"</span><span class="p">,</span>
+     <span class="ss">:id</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28_LICENSE.txt"</span><span class="p">,</span>
+     <span class="ss">:rid</span><span class="o">=&gt;</span><span class="mi">4328</span><span class="p">,</span>
+     <span class="ss">:oid</span><span class="o">=&gt;</span><span class="s2">"f99909cd4ecb6f2ad08f8e55aac3a9fcd86a2bd2"</span><span class="p">,</span>
+     <span class="ss">:content</span><span class="o">=&gt;</span>
+      <span class="s2">"Copyright (c) 2014 Andrey Kumanyaev</span><span class="se">\n\n</span><span class="s2">MIT License</span><span class="se">\n\n</span><span class="s2">Permission is hereby granted, free of charge, to any person obtaining</span><span class="se">\n</span><span class="s2">a copy of this software and associated documentation files (the</span><span class="se">\n\"</span><span class="s2">Softw...."</span>
+     <span class="ss">:commit_sha</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">},</span>
+    <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"blob"</span><span class="p">,</span>
+     <span class="ss">:id</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28_README.md"</span><span class="p">,</span>
+     <span class="ss">:rid</span><span class="o">=&gt;</span><span class="mi">4328</span><span class="p">,</span>
+     <span class="ss">:oid</span><span class="o">=&gt;</span><span class="s2">"8258d574dfc8040a5d003f06c6493e0033527f36"</span><span class="p">,</span>
+     <span class="ss">:content</span><span class="o">=&gt;</span>
+      <span class="s2">"# Elasticsearch::Git</span><span class="se">\n\n</span><span class="s2">Attention: Pre-pre-pre beta code. Not production.</span><span class="se">\n\n</span><span class="s2">[Elasticsearch](https://github.com/elasticsearch/elasticsearch-rails/tree/master/elasticsearch-model) integrations for g...."</span>
+     <span class="ss">:commit_sha</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">},</span>
+    <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"blob"</span><span class="p">,</span>
+     <span class="ss">:id</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28_Rakefile"</span><span class="p">,</span>
+     <span class="ss">:rid</span><span class="o">=&gt;</span><span class="mi">4328</span><span class="p">,</span>
+     <span class="ss">:oid</span><span class="o">=&gt;</span><span class="s2">"29955274e0d42e164337c411ad9144e8ffd7e46e"</span><span class="p">,</span>
+     <span class="ss">:content</span><span class="o">=&gt;</span><span class="s2">"require </span><span class="se">\"</span><span class="s2">bundler/gem_tasks</span><span class="se">\"\n</span><span class="s2">"</span><span class="p">,</span>
+     <span class="ss">:commit_sha</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">},</span>
+    <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"blob"</span><span class="p">,</span>
+     <span class="ss">:id</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28_elasticsearch-git.gemspec"</span><span class="p">,</span>
+     <span class="ss">:rid</span><span class="o">=&gt;</span><span class="mi">4328</span><span class="p">,</span>
+     <span class="ss">:oid</span><span class="o">=&gt;</span><span class="s2">"67762437568dda1bb98ec5eca8be7e4a5c8115a9"</span><span class="p">,</span>
+     <span class="ss">:content</span><span class="o">=&gt;</span>
+      <span class="s2">"# coding: utf-8</span><span class="se">\n</span><span class="s2">lib = File.expand_path('../lib', __FILE__)</span><span class="se">\n</span><span class="s2">$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)</span><span class="se">\n</span><span class="s2">require 'elasticsearch/git/version'</span><span class="se">\n\n</span><span class="s2">Gem::Specification.new do |spec|</span><span class="se">\n</span><span class="s2">  spec..."</span>
+     <span class="ss">:commit_sha</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">},</span>
+    <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"blob"</span><span class="p">,</span>
+     <span class="ss">:id</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28_elasticsearch/git.rb"</span><span class="p">,</span>
+     <span class="ss">:rid</span><span class="o">=&gt;</span><span class="mi">4328</span><span class="p">,</span>
+     <span class="ss">:oid</span><span class="o">=&gt;</span><span class="s2">"d3817ec58af1f44dfd18856bf54ef2bf607901a8"</span><span class="p">,</span>
+     <span class="ss">:content</span><span class="o">=&gt;</span>
+      <span class="s2">"require </span><span class="se">\"</span><span class="s2">elasticsearch/git/version</span><span class="se">\"\n</span><span class="s2">require </span><span class="se">\"</span><span class="s2">elasticsearch/git/model</span><span class="se">\"\n</span><span class="s2">require </span><span class="se">\"</span><span class="s2">elasticsearch/git/commit</span><span class="se">\"\n\n</span><span class="s2">module Elasticsearch</span><span class="se">\n</span><span class="s2">  module Git</span><span class="se">\n</span><span class="s2">    class Test</span><span class="se">\n</span><span class="s2">      include Elasticsearch::..."</span>
+     <span class="ss">:commit_sha</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">},</span>
+    <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"blob"</span><span class="p">,</span>
+     <span class="ss">:id</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28_git/model.rb"</span><span class="p">,</span>
+     <span class="ss">:rid</span><span class="o">=&gt;</span><span class="mi">4328</span><span class="p">,</span>
+     <span class="ss">:oid</span><span class="o">=&gt;</span><span class="s2">"3dfbae747f25391779fbe012fe8cc4f38cc4651c"</span><span class="p">,</span>
+     <span class="ss">:content</span><span class="o">=&gt;</span>
+      <span class="s2">"require 'active_support/concern'</span><span class="se">\n</span><span class="s2">require 'active_model'</span><span class="se">\n</span><span class="s2">require 'elasticsearch/model'</span><span class="se">\n\n</span><span class="s2">module Elasticsearch</span><span class="se">\n</span><span class="s2">  module Git</span><span class="se">\n</span><span class="s2">    module Model</span><span class="se">\n</span><span class="s2">      extend ActiveSupport::Concern</span><span class="se">\n\n</span><span class="s2">      include..."</span>
+     <span class="ss">:commit_sha</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">},</span>
+    <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"blob"</span><span class="p">,</span>
+     <span class="ss">:id</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28_git/repository.rb"</span><span class="p">,</span>
+     <span class="ss">:rid</span><span class="o">=&gt;</span><span class="mi">4328</span><span class="p">,</span>
+     <span class="ss">:oid</span><span class="o">=&gt;</span><span class="s2">"70fe59c8391f6c27adb79c3e45824e6b4cf9566c"</span><span class="p">,</span>
+     <span class="ss">:content</span><span class="o">=&gt;</span>
+      <span class="s2">"require 'active_support/concern'</span><span class="se">\n</span><span class="s2">require 'active_model'</span><span class="se">\n</span><span class="s2">require 'elasticsearch'</span><span class="se">\n</span><span class="s2">require 'elasticsearch/model'</span><span class="se">\n</span><span class="s2">require 'rugged'</span><span class="se">\n</span><span class="s2">require 'gitlab_git'</span><span class="se">\n\n</span><span class="s2">module Elasticsearch</span><span class="se">\n</span><span class="s2">  module Git</span><span class="se">\n</span><span class="s2">    m..."</span>
+     <span class="ss">:commit_sha</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">},</span>
+    <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"blob"</span><span class="p">,</span>
+     <span class="ss">:id</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28_git/version.rb"</span><span class="p">,</span>
+     <span class="ss">:rid</span><span class="o">=&gt;</span><span class="mi">4328</span><span class="p">,</span>
+     <span class="ss">:oid</span><span class="o">=&gt;</span><span class="s2">"79e8082b122492464732f1fb43e9f2bdc96ea146"</span><span class="p">,</span>
+     <span class="ss">:content</span><span class="o">=&gt;</span>
+      <span class="s2">"module Elasticsearch</span><span class="se">\n</span><span class="s2">  module Git</span><span class="se">\n</span><span class="s2">    VERSION = </span><span class="se">\"</span><span class="s2">0.0.1</span><span class="se">\"\n</span><span class="s2">  end</span><span class="se">\n</span><span class="s2">end</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+     <span class="ss">:commit_sha</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">},</span>
+    <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"blob"</span><span class="p">,</span>
+     <span class="ss">:id</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28_test/test_helper.rb"</span><span class="p">,</span>
+     <span class="ss">:rid</span><span class="o">=&gt;</span><span class="mi">4328</span><span class="p">,</span>
+     <span class="ss">:oid</span><span class="o">=&gt;</span><span class="s2">"6acc0d2b7bf0f286557d3757c1140b41ab57e8f7"</span><span class="p">,</span>
+     <span class="ss">:content</span><span class="o">=&gt;</span>
+      <span class="s2">"require </span><span class="se">\"</span><span class="s2">rubygems</span><span class="se">\"\n</span><span class="s2">require 'bundler/setup'</span><span class="se">\n</span><span class="s2">require 'pry'</span><span class="se">\n\n</span><span class="s2">Bundler.require</span><span class="se">\n\n</span><span class="s2">require 'wrong/adapters/minitest'</span><span class="se">\n\n</span><span class="s2">PROJECT_ROOT = File.join(Dir.pwd)</span><span class="se">\n\n</span><span class="s2">Wrong.config.color</span><span class="se">\n\n</span><span class="s2">Minitest.autorun</span><span class="se">\n</span><span class="s2">..."</span>
+     <span class="ss">:commit_sha</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">}</span><span class="o">]]</span><span class="p">,</span>
+ <span class="ss">:commits</span><span class="o">=&gt;</span>
+  <span class="o">[</span><span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"commit"</span><span class="p">,</span>
+    <span class="ss">:sha</span><span class="o">=&gt;</span><span class="s2">"8d4175e9f4a36065b52fa752c1fd3594c82c0f28"</span><span class="p">,</span>
+    <span class="ss">:author</span><span class="o">=&gt;</span>
+     <span class="p">{</span><span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"Andrey Kumanyaev"</span><span class="p">,</span>
+      <span class="ss">:email</span><span class="o">=&gt;</span><span class="s2">"me@zzet.org"</span><span class="p">,</span>
+      <span class="ss">:time</span><span class="o">=&gt;</span><span class="mi">2014</span><span class="o">-</span><span class="mo">02</span><span class="o">-</span><span class="mi">16</span> <span class="mi">13</span><span class="p">:</span><span class="mi">50</span><span class="p">:</span><span class="mi">32</span> <span class="o">+</span><span class="mo">0400</span><span class="p">},</span>
+    <span class="ss">:committer</span><span class="o">=&gt;</span>
+     <span class="p">{</span><span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"Andrey Kumanyaev"</span><span class="p">,</span>
+      <span class="ss">:email</span><span class="o">=&gt;</span><span class="s2">"me@zzet.org"</span><span class="p">,</span>
+      <span class="ss">:time</span><span class="o">=&gt;</span><span class="mi">2014</span><span class="o">-</span><span class="mo">02</span><span class="o">-</span><span class="mi">16</span> <span class="mi">13</span><span class="p">:</span><span class="mi">50</span><span class="p">:</span><span class="mi">32</span> <span class="o">+</span><span class="mo">0400</span><span class="p">},</span>
+    <span class="ss">:message</span><span class="o">=&gt;</span><span class="s2">"Improve readme</span><span class="se">\n</span><span class="s2">"</span><span class="p">},</span>
+   <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"commit"</span><span class="p">,</span>
+    <span class="ss">:sha</span><span class="o">=&gt;</span><span class="s2">"37f1b0710eb7f41254ae0c33db09794a25bbb246"</span><span class="p">,</span>
+    <span class="ss">:author</span><span class="o">=&gt;</span>
+     <span class="p">{</span><span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"Andrey Kumanyaev"</span><span class="p">,</span>
+      <span class="ss">:email</span><span class="o">=&gt;</span><span class="s2">"me@zzet.org"</span><span class="p">,</span>
+      <span class="ss">:time</span><span class="o">=&gt;</span><span class="mi">2014</span><span class="o">-</span><span class="mo">02</span><span class="o">-</span><span class="mi">16</span> <span class="mi">13</span><span class="p">:</span><span class="mi">49</span><span class="p">:</span><span class="mi">25</span> <span class="o">+</span><span class="mo">0400</span><span class="p">},</span>
+    <span class="ss">:committer</span><span class="o">=&gt;</span>
+     <span class="p">{</span><span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"Andrey Kumanyaev"</span><span class="p">,</span>
+      <span class="ss">:email</span><span class="o">=&gt;</span><span class="s2">"me@zzet.org"</span><span class="p">,</span>
+      <span class="ss">:time</span><span class="o">=&gt;</span><span class="mi">2014</span><span class="o">-</span><span class="mo">02</span><span class="o">-</span><span class="mi">16</span> <span class="mi">13</span><span class="p">:</span><span class="mi">49</span><span class="p">:</span><span class="mi">25</span> <span class="o">+</span><span class="mo">0400</span><span class="p">},</span>
+    <span class="ss">:message</span><span class="o">=&gt;</span><span class="s2">"prepare first test release</span><span class="se">\n</span><span class="s2">"</span><span class="p">},</span>
+   <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"commit"</span><span class="p">,</span>
+    <span class="ss">:sha</span><span class="o">=&gt;</span><span class="s2">"1802bafa70d3b1678cfa46a482fd396dd8a4bd40"</span><span class="p">,</span>
+    <span class="ss">:author</span><span class="o">=&gt;</span>
+     <span class="p">{</span><span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"Andrey Kumanyaev"</span><span class="p">,</span>
+      <span class="ss">:email</span><span class="o">=&gt;</span><span class="s2">"me@zzet.org"</span><span class="p">,</span>
+      <span class="ss">:time</span><span class="o">=&gt;</span><span class="mi">2014</span><span class="o">-</span><span class="mo">02</span><span class="o">-</span><span class="mi">16</span> <span class="mo">02</span><span class="p">:</span><span class="mi">24</span><span class="p">:</span><span class="mi">23</span> <span class="o">+</span><span class="mo">0400</span><span class="p">},</span>
+    <span class="ss">:committer</span><span class="o">=&gt;</span>
+     <span class="p">{</span><span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"Andrey Kumanyaev"</span><span class="p">,</span>
+      <span class="ss">:email</span><span class="o">=&gt;</span><span class="s2">"me@zzet.org"</span><span class="p">,</span>
+      <span class="ss">:time</span><span class="o">=&gt;</span><span class="mi">2014</span><span class="o">-</span><span class="mo">02</span><span class="o">-</span><span class="mi">16</span> <span class="mo">02</span><span class="p">:</span><span class="mi">24</span><span class="p">:</span><span class="mi">23</span> <span class="o">+</span><span class="mo">0400</span><span class="p">},</span>
+    <span class="ss">:message</span><span class="o">=&gt;</span><span class="s2">"Save 2. Indexing work. Search too</span><span class="se">\n</span><span class="s2">"</span><span class="p">},</span>
+   <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"commit"</span><span class="p">,</span>
+    <span class="ss">:sha</span><span class="o">=&gt;</span><span class="s2">"3ed383bfbf6cba611d191dbc3590779c0444b7f0"</span><span class="p">,</span>
+    <span class="ss">:author</span><span class="o">=&gt;</span>
+     <span class="p">{</span><span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"Andrey Kumanyaev"</span><span class="p">,</span>
+      <span class="ss">:email</span><span class="o">=&gt;</span><span class="s2">"me@zzet.org"</span><span class="p">,</span>
+      <span class="ss">:time</span><span class="o">=&gt;</span><span class="mi">2014</span><span class="o">-</span><span class="mo">02</span><span class="o">-</span><span class="mi">16</span> <span class="mo">00</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">10</span> <span class="o">+</span><span class="mo">0400</span><span class="p">},</span>
+    <span class="ss">:committer</span><span class="o">=&gt;</span>
+     <span class="p">{</span><span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"Andrey Kumanyaev"</span><span class="p">,</span>
+      <span class="ss">:email</span><span class="o">=&gt;</span><span class="s2">"me@zzet.org"</span><span class="p">,</span>
+      <span class="ss">:time</span><span class="o">=&gt;</span><span class="mi">2014</span><span class="o">-</span><span class="mo">02</span><span class="o">-</span><span class="mi">16</span> <span class="mo">00</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">10</span> <span class="o">+</span><span class="mo">0400</span><span class="p">},</span>
+    <span class="ss">:message</span><span class="o">=&gt;</span><span class="s2">"Save commit</span><span class="se">\n</span><span class="s2">"</span><span class="p">},</span>
+   <span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="s2">"commit"</span><span class="p">,</span>
+    <span class="ss">:sha</span><span class="o">=&gt;</span><span class="s2">"7021addf520a19bdeceef29947c8687965c132ff"</span><span class="p">,</span>
+    <span class="ss">:author</span><span class="o">=&gt;</span>
+     <span class="p">{</span><span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"Andrey Kumanyaev"</span><span class="p">,</span>
+      <span class="ss">:email</span><span class="o">=&gt;</span><span class="s2">"me@zzet.org"</span><span class="p">,</span>
+      <span class="ss">:time</span><span class="o">=&gt;</span><span class="mi">2014</span><span class="o">-</span><span class="mo">02</span><span class="o">-</span><span class="mi">15</span> <span class="mi">14</span><span class="p">:</span><span class="mi">28</span><span class="p">:</span><span class="mi">43</span> <span class="o">+</span><span class="mo">0400</span><span class="p">},</span>
+    <span class="ss">:committer</span><span class="o">=&gt;</span>
+     <span class="p">{</span><span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"Andrey Kumanyaev"</span><span class="p">,</span>
+      <span class="ss">:email</span><span class="o">=&gt;</span><span class="s2">"me@zzet.org"</span><span class="p">,</span>
+      <span class="ss">:time</span><span class="o">=&gt;</span><span class="mi">2014</span><span class="o">-</span><span class="mo">02</span><span class="o">-</span><span class="mi">15</span> <span class="mi">14</span><span class="p">:</span><span class="mi">28</span><span class="p">:</span><span class="mi">43</span> <span class="o">+</span><span class="mo">0400</span><span class="p">},</span>
+    <span class="ss">:message</span><span class="o">=&gt;</span><span class="s2">"first commit</span><span class="se">\n</span><span class="s2">"</span><span class="p">}</span><span class="o">]</span><span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="todo" class="anchor" href="#todo"><span class="octicon octicon-link"></span></a>TODO</h2>
+
+<pre><code>* Add Exceptions handlers for indexing (Error connections and timeouts)
+</code></pre>
+
+<h2>
+<a name="contributing" class="anchor" href="#contributing"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<ol>
+<li>Fork it ( <a href="http://github.com/%5Bmy-github-username%5D/elasticsearch-git/fork">http://github.com/[my-github-username]/elasticsearch-git/fork</a> )</li>
+<li>Create your feature branch (<code>git checkout -b my-new-feature</code>)</li>
+<li>Commit your changes (<code>git commit -am 'Add some feature'</code>)</li>
+<li>Push to the branch (<code>git push origin my-new-feature</code>)</li>
+<li>Create new Pull Request</li>
+</ol>
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="http://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		
+  </body>
+</html>
