@@ -336,7 +336,7 @@ Project.last.repository.as_indexed_json
 
 ## Contributing
 
-1. Fork it ( http://github.com/[my-github-username]/elasticsearch-git/fork )
+1. Fork it ( http://github.com/zzet/elasticsearch-git/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
