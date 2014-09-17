@@ -11,7 +11,7 @@ Now indexing text-like documents mo nore 1 mb size
 Add this line to your application's Gemfile:
 
 ``` ruby
-gem 'elasticsearch-git', '~> 0.0.4'
+gem 'elasticsearch-git', '~> 0.0.5'
 
 # or
 
