@@ -6,8 +6,8 @@ require 'elasticsearch/git/version'
 Gem::Specification.new do |spec|
   spec.name          = "elasticsearch-git"
   spec.version       = Elasticsearch::Git::VERSION
-  spec.authors       = ["Andrey Kumanyaev"]
-  spec.email         = ["me@zzet.org"]
+  spec.authors       = ["Andrey Kumanyaev", "Evgeniy Sokovikov"]
+  spec.email         = ["me@zzet.org", "skv-headless@yandex.ru"]
   spec.summary       = %q{Elasticsearch integrations for git repositories.}
   spec.description   = %q{Elasticsearch integrations for indexing git repositories.}
   spec.homepage      = "https://github.com/zzet/elasticsearch-git"
