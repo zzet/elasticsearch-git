@@ -1,5 +1,7 @@
 # Elasticsearch::Git
 
+[![Gem Version](https://badge.fury.io/rb/elasticsearch-git.svg)](http://badge.fury.io/rb/elasticsearch-git)
+
 [Elasticsearch](https://github.com/elasticsearch/elasticsearch-rails/tree/master/elasticsearch-model) integrations for git repositories.
 
 ## NOTE
