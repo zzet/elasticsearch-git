@@ -39,5 +39,17 @@ class RepositoryTest < TestCase
 
     result = @repository.search('def project_name_regex')
     assert { result[:blobs][:total_count]  == 1 }
+
+  end
+
+  def test_index_all_commits_from_head
+    commit_count = @repository.index_commits(
+        from_rev: "0000000000000000000000000000000000000000",
+        to_rev: @repository.repository_for_indexing.head.target.oid)
+    Repository.__elasticsearch__.refresh_index!
+
+    result = @repository.search("Initial")
+    c = result[:commits][:results].results.first
+    assert { c._source.commit.sha == RepoInfo::FIRST_COMMIT }
   end
 end

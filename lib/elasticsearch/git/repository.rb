@@ -34,13 +34,13 @@ module Elasticsearch
             indexes :author do
               indexes :name,      type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
               indexes :email,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
-              indexes :time,      type: :date
+              indexes :time,      type: :time
             end
 
             indexes :commiter do
               indexes :name,      type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
               indexes :email,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
-              indexes :time,      type: :date
+              indexes :time,      type: :time
             end
 
             indexes :message,     type: :string, index_options: 'offsets', search_analyzer: :code_analyzer,    index_analyzer: :code_analyzer
