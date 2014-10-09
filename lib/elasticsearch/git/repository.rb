@@ -47,20 +47,6 @@ module Elasticsearch
           end
         end
 
-        # Indexing all text-like blobs in repository
-        #
-        # All data stored in global index
-        # Repository can be selected by 'rid' field
-        # If you want - this field can be used for store 'project' id
-        #
-        # blob {
-        #   id - uniq id of blob from all repositories
-        #   oid - blob id in repository
-        #   content - blob content
-        #   commit_sha - last actual commit sha
-        # }
-        #
-        # For search from blobs use type 'blob'
         def index_blobs(from_rev: nil, to_rev: repository_for_indexing.last_commit.oid)
           from, to = parse_revs(from_rev, to_rev)
 
@@ -76,15 +62,11 @@ module Elasticsearch
               b = LiteBlob.new(repository_for_indexing, delta.new_file)
               index_blob(b, to)
             end
-
-            # Run GC every 100 blobs
-            ObjectSpace.garbage_collect if step % 100 == 0
           end
         end
 
         def index_blob(blob, target_sha)
           if can_index_blob?(blob)
-            tries = 0
             begin
               client_for_indexing.index \
                 index: "#{self.class.index_name}",
@@ -102,14 +84,7 @@ module Elasticsearch
                   }
                 }
             rescue Exception => ex
-              # Retry 10 times send request
-              if tries < 10
-                tries += 1
-                sleep tries * 10 * rand(10)
-                retry
-              else
-                logger.warn "Can't index #{repository_id}_#{blob.path}. Reason: #{ex.message}"
-              end
+              logger.warn "Can't index #{repository_id}_#{blob.path}. Reason: #{ex.message}"
             end
           end
         end
@@ -134,28 +109,6 @@ module Elasticsearch
           end
         end
 
-        # Indexing all commits in repository
-        #
-        # All data stored in global index
-        # Repository can be filtered by 'rid' field
-        # If you want - this field can be used git store 'project' id
-        #
-        # commit {
-        #  sha - commit sha
-        #  author {
-        #    name - commit author name
-        #    email - commit author email
-        #    time - commit time
-        #  }
-        #  commiter {
-        #    name - committer name
-        #    email - committer email
-        #    time - commit time
-        #  }
-        #  message - commit message
-        # }
-        #
-        # For search from commits use type 'commit'
         def index_commits(from_rev: nil, to_rev: repository_for_indexing.last_commit.oid)
           from, to = parse_revs(from_rev, to_rev)
           range = [from, to].reject(&:nil?).join('..')
@@ -167,7 +120,6 @@ module Elasticsearch
 
             commit_oids.each_with_index do |commit, step|
               index_commit(repository_for_indexing.lookup(commit))
-              ObjectSpace.garbage_collect if step % 100 == 0
             end
             return commit_oids.count
           end
@@ -176,7 +128,6 @@ module Elasticsearch
         end
 
         def index_commit(commit)
-          tries = 0
           begin
             client_for_indexing.index \
               index: "#{self.class.index_name}",
@@ -193,14 +144,7 @@ module Elasticsearch
                 }
               }
           rescue Exception => ex
-            # Retry 10 times send request
-            if tries < 10
-              tries += 1
-              sleep tries * 10 * rand(10)
-              retry
-            else
-              logger.warn "Can't index #{repository_id}_#{commit.oid}. Reason: #{ex.message}"
-            end
+            logger.warn "Can't index #{repository_id}_#{commit.oid}. Reason: #{ex.message}"
           end
         end
 
