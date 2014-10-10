@@ -5,6 +5,7 @@ gemspec
 
 gem 'elasticsearch-model', github: 'elasticsearch/elasticsearch-rails'
 gem 'elasticsearch-api', git: 'git://github.com/elasticsearch/elasticsearch-ruby.git'
+gem 'elasticsearch-persistence', git: 'git://github.com/elasticsearch/elasticsearch-rails.git'
 gem 'rugged'
 gem 'bundler'
 gem 'rake'
