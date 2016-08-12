@@ -1,3 +1,7 @@
+# This repository no longer supported
+
+Please, use https://gitlab.com/gitlab-org/gitlab-elasticsearch-git
+
 # Elasticsearch::Git
 
 [![Gem Version](https://badge.fury.io/rb/elasticsearch-git.svg)](http://badge.fury.io/rb/elasticsearch-git)
